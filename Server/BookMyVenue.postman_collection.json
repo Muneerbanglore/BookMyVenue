@@ -1,0 +1,426 @@
+{
+  "info": {
+    "_postman_id": "8a3d5e2c-fb04-4b55-ad8e-b816ef1e479a",
+    "name": "BookMyVenue API Collection",
+    "description": "Postman collection for BookMyVenue server application. Features include user auth, user profile, master dropdown data, pre-validation check, onboarding registration (Venue Owner / Regular User), and OTP send/verify capabilities.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Server Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Checks the operational status of the backend API server."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Legacy Auth",
+      "item": [
+        {
+          "name": "Traditional Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Creates a legacy user profile with email/password and returns a JWT auth session token."
+          },
+          "response": []
+        },
+        {
+          "name": "Traditional User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Validates credentials and issues a JWT token for the user profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Authenticates the refresh token, invalidates the old token, and returns a new Access and rotated Refresh token pair."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Deletes the refresh token from Redis, invalidating future session refreshes."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            },
+            "description": "Retrieves the authenticated user profile details. Requires a valid JWT token."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Test User\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            },
+            "description": "Modifies the profile data of the logged-in user."
+          },
+          "response": []
+        },
+        {
+          "name": "Heavy Task Execution (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"iterations\": 50000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/heavy-task",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "heavy-task"
+              ]
+            },
+            "description": "Triggers a heavy CPU task handled by a native Worker Thread. Requires the admin role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Master Data",
+      "item": [
+        {
+          "name": "Get Onboarding Dropdowns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/master/onboarding",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "master",
+                "onboarding"
+              ]
+            },
+            "description": "Returns list dropdowns for Country, Currency, Timezones, Themes, and Locales in a single API call for front-end caching (Redux/Context)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Onboarding & OTP",
+      "item": [
+        {
+          "name": "Pre-Validate Onboarding Payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"google-oauth2|1234567890\"\n  },\n  \"personalData\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phoneNumber\": \"+971500000000\"\n  },\n  \"location\": {\n    \"coordinates\": {\n      \"latitude\": 25.2048,\n      \"longitude\": 55.2708\n    },\n    \"metadata\": {\n      \"country\": \"United Arab Emirates\",\n      \"city\": \"Dubai\",\n      \"state\": \"Dubai\",\n      \"postalCode\": \"00000\",\n      \"timezone\": \"Asia/Dubai\",\n      \"locale\": \"en-AE\"\n    }\n  },\n  \"verificationStatus\": {\n    \"isEmailVerified\": true,\n    \"isPhoneVerified\": false,\n    \"verificationChannel\": \"OTP\"\n  },\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"notifications\": {\n      \"email\": true,\n      \"sms\": false,\n      \"push\": true\n    },\n    \"currency\": \"AED\",\n    \"marketingConsent\": false\n  },\n  \"role\": \"VENUE_OWNER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/onboarding/pre-validate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "onboarding",
+                "pre-validate"
+              ]
+            },
+            "description": "Validates schema structures and checks if the email or phone number is already registered prior to submission. Returns custom error format if validation fails."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Onboarding Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"google-oauth2|1234567890\"\n  },\n  \"personalData\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phoneNumber\": \"+971500000000\"\n  },\n  \"location\": {\n    \"coordinates\": {\n      \"latitude\": 25.2048,\n      \"longitude\": 55.2708\n    },\n    \"metadata\": {\n      \"country\": \"United Arab Emirates\",\n      \"city\": \"Dubai\",\n      \"state\": \"Dubai\",\n      \"postalCode\": \"00000\",\n      \"timezone\": \"Asia/Dubai\",\n      \"locale\": \"en-AE\"\n    }\n  },\n  \"verificationStatus\": {\n    \"isEmailVerified\": true,\n    \"isPhoneVerified\": false,\n    \"verificationChannel\": \"OTP\"\n  },\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"notifications\": {\n      \"email\": true,\n      \"sms\": false,\n      \"push\": true\n    },\n    \"currency\": \"AED\",\n    \"marketingConsent\": false\n  },\n  \"role\": \"VENUE_OWNER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/onboarding/user/create_account",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "onboarding",
+                "user",
+                "create_account"
+              ]
+            },
+            "description": "Registers a new member account (role mapping: VENUE_OWNER -> 1, USER -> 2) in the members collection. Returns status 201."
+          },
+          "response": []
+        },
+        {
+          "name": "Send OTP Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"phone\",\n  \"target\": \"+971500000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/onboarding/otp/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "onboarding",
+                "otp",
+                "send"
+              ]
+            },
+            "description": "Generates a 6-digit OTP code, stores it in Redis with a 5-minute TTL, and logs the code in the container console for verification."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"phone\",\n  \"target\": \"+971500000000\",\n  \"code\": \"123456\",\n  \"userId\": \"doc_id_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/onboarding/otp/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "onboarding",
+                "otp",
+                "verify"
+              ]
+            },
+            "description": "Compares code from Redis. On success, updates the verification status in the members collection."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "your_jwt_auth_token_here",
+      "type": "string"
+    }
+  ]
+}
