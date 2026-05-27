@@ -6,21 +6,60 @@ const redis = require('../config/queue');
 const logger = require('../config/logger');
 const mailer = require('../utils/mailer');
 const sms = require('../utils/sms');
+const db = require('../config/firebase');
 
 /**
  * Retrieve static onboarding master dropdown lists
  */
-const getOnboardingDropdowns = (req, res, next) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      countries: masterData.countries,
-      currencies: masterData.currencies,
-      timezones: masterData.timezones,
-      themes: masterData.themes,
-      locales: masterData.locales
+const getOnboardingDropdowns = async (req, res, next) => {
+  try {
+    let roles = [];
+    if (db) {
+      try {
+        const rolesSnapshot = await db.collection('roles').get();
+        roles = rolesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name || doc.id,
+            ...data
+          };
+        });
+      } catch (error) {
+        logger.warn(`Failed to fetch roles from Firestore: ${error.message}`);
+        roles = [
+          { id: 'VENUE_OWNER', name: 'Venue Owner' },
+          { id: 'USER', name: 'User' }
+        ];
+      }
+    } else {
+      roles = [
+        { id: 'VENUE_OWNER', name: 'Venue Owner' },
+        { id: 'USER', name: 'User' }
+      ];
     }
-  });
+
+    if (roles.length === 0) {
+      roles = [
+        { id: 'VENUE_OWNER', name: 'Venue Owner' },
+        { id: 'USER', name: 'User' }
+      ];
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        countries: masterData.countries,
+        currencies: masterData.currencies,
+        timezones: masterData.timezones,
+        themes: masterData.themes,
+        locales: masterData.locales,
+        roles
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /**
@@ -120,9 +159,9 @@ const createAccount = async (req, res, next) => {
         password: password ? await cryptoUtils.hashPassword(password) : ''
       },
       varification: {
-        is_email: authProvider && authProvider.type === 'GOOGLE' ? true : verificationStatus.isEmailVerified,
+        is_email: authProvider && authProvider.type === 'GOOGLE' ? true : (verificationStatus ? verificationStatus.isEmailVerified : false),
         is_google_auth: authProvider && authProvider.type === 'GOOGLE',
-        is_mobile_number: verificationStatus.isPhoneVerified
+        is_mobile_number: verificationStatus ? verificationStatus.isPhoneVerified : false
       }
     };
 
