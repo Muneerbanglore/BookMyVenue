@@ -12,6 +12,8 @@ const redisConnection = new Redis({
   password: redisPassword,
   maxRetriesPerRequest: null, // Required by BullMQ
   enableReadyCheck: false,
+  // Upstash requires TLS for public connections. We check the hostname or env flag.
+  ...(redisHost.includes('upstash.io') || process.env.REDIS_TLS === 'true' ? { tls: {} } : {})
 });
 
 redisConnection.on('error', (error) => {

@@ -405,6 +405,116 @@
               ]
             },
             "description": "Compares code from Redis. On success, updates the verification status in the members collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Google Maps Proxy",
+      "item": [
+        {
+          "name": "Places Autocomplete",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/maps/places/autocomplete?input=dubai",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maps",
+                "places",
+                "autocomplete"
+              ],
+              "query": [
+                {
+                  "key": "input",
+                  "value": "dubai"
+                }
+              ]
+            },
+            "description": "Securely proxies the Places Autocomplete search query to Google without revealing the API key to the frontend."
+          },
+          "response": []
+        },
+        {
+          "name": "Place Details (Get Coordinates)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/maps/places/details?placeId=ChIJRzd7y1wVmltgFk9C",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maps",
+                "places",
+                "details"
+              ],
+              "query": [
+                {
+                  "key": "placeId",
+                  "value": "ChIJRzd7y1wVmltgFk9C"
+                }
+              ]
+            },
+            "description": "Retrieves the exact coordinates (latitude and longitude) and details of a place ID using the secure backend proxy."
+          },
+          "response": []
+        },
+        {
+          "name": "Directions (Routing)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/maps/directions?origin=DubaiMall&destination=DubaiMarina",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maps",
+                "directions"
+              ],
+              "query": [
+                {
+                  "key": "origin",
+                  "value": "DubaiMall"
+                },
+                {
+                  "key": "destination",
+                  "value": "DubaiMarina"
+                }
+              ]
+            },
+            "description": "Fetches route polyline coordinates and directions between origin and destination securely."
+          },
+          "response": []
+        },
+        {
+          "name": "Geocode / Reverse Geocode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/maps/geocode?latlng=25.2048,55.2708",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maps",
+                "geocode"
+              ],
+              "query": [
+                {
+                  "key": "latlng",
+                  "value": "25.2048,55.2708"
+                }
+              ]
+            },
+            "description": "Converts coordinates (latitude/longitude) to address details or vice-versa securely using backend proxy."
           },
           "response": []
         }

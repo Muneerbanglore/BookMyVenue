@@ -4,6 +4,8 @@ const { BadRequestError } = require('../utils/errors');
 const cryptoUtils = require('../utils/crypto');
 const redis = require('../config/queue');
 const logger = require('../config/logger');
+const mailer = require('../utils/mailer');
+const sms = require('../utils/sms');
 
 /**
  * Retrieve static onboarding master dropdown lists
@@ -163,6 +165,41 @@ const sendOTP = async (req, res, next) => {
 
     // Output OTP code to winston logger for manual testing
     logger.info(`[TEST OTP] Verification OTP code for ${type} (${target}) is: ${otpCode}`);
+
+    // If type is email, trigger nodemailer to send the OTP
+    if (type === 'email') {
+      const emailHtml = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #4f46e5; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">BookMyVenue</h1>
+          </div>
+          <div style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
+            <h2 style="color: #1e293b; margin-top: 0; font-size: 20px; font-weight: 700;">Verify Your Email Address</h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">Thank you for registering with BookMyVenue! To complete your verification, please use the following one-time password (OTP):</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 6px; color: #4f46e5; background-color: #eef2ff; padding: 14px 28px; border-radius: 10px; border: 1px dashed #818cf8; display: inline-block;">${otpCode}</span>
+            </div>
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 0;">This code is valid for 5 minutes. Please do not share this code with anyone.</p>
+          </div>
+          <div style="text-align: center; margin-top: 24px; color: #94a3b8; font-size: 12px;">
+            &copy; 2026 BookMyVenue. All rights reserved.
+          </div>
+        </div>
+      `;
+      await mailer.sendEmail({
+        to: target,
+        subject: `[BookMyVenue] Verify Your Email Address - OTP: ${otpCode}`,
+        html: emailHtml
+      });
+    }
+
+    // If type is phone, trigger twilio to send the OTP
+    if (type === 'phone') {
+      await sms.sendSMS({
+        to: target,
+        body: `Your BookMyVenue verification code is: ${otpCode}. This code is valid for 5 minutes.`
+      });
+    }
 
     res.status(200).json({
       success: true,
