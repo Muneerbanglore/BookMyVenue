@@ -9,51 +9,52 @@ const sms = require('../utils/sms');
 const db = require('../config/firebase');
 
 /**
- * Retrieve static onboarding master dropdown lists
+ * Helper utility to fetch and map a Firestore collection with fallbacks.
+ */
+const fetchCollection = async (collectionName, defaultData, isStringArray = false) => {
+  if (!db) return defaultData;
+  try {
+    const snapshot = await db.collection(collectionName).get();
+    if (snapshot.empty) return defaultData;
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      if (isStringArray) {
+        return data.value || data.name || doc.id;
+      }
+      return {
+        id: doc.id,
+        ...data
+      };
+    });
+  } catch (error) {
+    logger.warn(`Failed to fetch ${collectionName} from Firestore: ${error.message}`);
+    return defaultData;
+  }
+};
+
+/**
+ * Retrieve static onboarding master dropdown lists from database collections
  */
 const getOnboardingDropdowns = async (req, res, next) => {
   try {
-    let roles = [];
-    if (db) {
-      try {
-        const rolesSnapshot = await db.collection('roles').get();
-        roles = rolesSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name || doc.id,
-            ...data
-          };
-        });
-      } catch (error) {
-        logger.warn(`Failed to fetch roles from Firestore: ${error.message}`);
-        roles = [
-          { id: 'VENUE_OWNER', name: 'Venue Owner' },
-          { id: 'USER', name: 'User' }
-        ];
-      }
-    } else {
-      roles = [
-        { id: 'VENUE_OWNER', name: 'Venue Owner' },
-        { id: 'USER', name: 'User' }
-      ];
-    }
-
-    if (roles.length === 0) {
-      roles = [
-        { id: 'VENUE_OWNER', name: 'Venue Owner' },
-        { id: 'USER', name: 'User' }
-      ];
-    }
+    const countries = await fetchCollection('countries', masterData.countries);
+    const currencies = await fetchCollection('currencies', masterData.currencies);
+    const timezones = await fetchCollection('timezones', masterData.timezones);
+    const themes = await fetchCollection('themes', masterData.themes, true);
+    const locales = await fetchCollection('locales', masterData.locales, true);
+    const roles = await fetchCollection('roles', [
+      { id: 'VENUE_OWNER', name: 'Venue Owner' },
+      { id: 'USER', name: 'User' }
+    ]);
 
     res.status(200).json({
       success: true,
       data: {
-        countries: masterData.countries,
-        currencies: masterData.currencies,
-        timezones: masterData.timezones,
-        themes: masterData.themes,
-        locales: masterData.locales,
+        countries,
+        currencies,
+        timezones,
+        themes,
+        locales,
         roles
       }
     });
