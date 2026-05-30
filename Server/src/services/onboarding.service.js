@@ -1,6 +1,4 @@
 const Member = require('../schemas/member.schema');
-const User = require('../schemas/user.schema');
-const VenueOwner = require('../schemas/venue_owner.schema');
 const { BadRequestError } = require('../utils/errors');
 const cryptoUtils = require('../utils/crypto');
 
@@ -81,30 +79,6 @@ const createOnboardingAccount = async (payload) => {
 
   const member = await Member.create(memberData);
 
-  const fullName = `${personalData.firstName} ${personalData.lastName}`;
-
-  // Save profile to corresponding collection based on role (member_id)
-  if (member_id === 1) {
-    const venueOwner = new VenueOwner({
-      _id: member.id,
-      name: fullName,
-      email: personalData.email,
-      phone_number: personalData.phoneNumber,
-      location: location || null,
-      preferences: preferences || null
-    });
-    await venueOwner.save();
-  } else {
-    const user = new User({
-      _id: member.id,
-      name: fullName,
-      email: personalData.email,
-      role: resolvedRole === 'ADMIN' ? 'admin' : 'user',
-      location: location || null,
-      preferences: preferences || null
-    });
-    await user.save();
-  }
 
   return member;
 };
