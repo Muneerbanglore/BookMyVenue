@@ -1,6 +1,6 @@
 const { UnauthorizedError, ForbiddenError, NotFoundError } = require('../utils/errors');
 const cryptoUtils = require('../utils/crypto');
-const User = require('../models/user.model');
+const User = require('../schemas/user.schema');
 const ErrorCodes = require('../constants/errorCodes');
 
 /**

@@ -69,13 +69,13 @@ const onboardingSchema = Joi.object({
         'any.required': 'Locale is a required field.'
       })
     }).required()
-  }).required(),
+  }).optional(),
 
   verificationStatus: Joi.object({
     isEmailVerified: Joi.boolean().required(),
     isPhoneVerified: Joi.boolean().required(),
     verificationChannel: Joi.string().valid('OTP', 'LINK', 'NONE').required()
-  }).required(),
+  }).optional(),
 
   preferences: Joi.object({
     theme: Joi.string().valid('light', 'dark').required().messages({
@@ -90,9 +90,15 @@ const onboardingSchema = Joi.object({
       'any.required': 'Currency is a required field.'
     }),
     marketingConsent: Joi.boolean().required()
-  }).required(),
+  }).optional(),
 
-  role: Joi.string().valid('VENUE_OWNER', 'USER', 'ADMIN').optional(),
+  role_id: Joi.number().valid(2, 3).optional(),
+  role: Joi.alternatives().try(
+    Joi.string().valid('VENUE_OWNER', 'USER', 'ADMIN'),
+    Joi.object({
+      id: Joi.string().valid('VENUE_OWNER', 'USER', 'ADMIN').required()
+    }).unknown()
+  ).optional(),
   password: Joi.string().min(6).optional().messages({
     'string.min': 'Password must be at least 6 characters long'
   })

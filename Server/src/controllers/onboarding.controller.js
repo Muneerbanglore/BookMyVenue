@@ -1,5 +1,4 @@
-const Member = require('../models/member.model');
-const masterData = require('../constants/onboardingMasterData');
+const Member = require('../schemas/member.schema');
 const { BadRequestError } = require('../utils/errors');
 const cryptoUtils = require('../utils/crypto');
 const redis = require('../config/queue');
@@ -7,28 +6,30 @@ const logger = require('../config/logger');
 const mailer = require('../utils/mailer');
 const sms = require('../utils/sms');
 const db = require('../config/firebase');
+const onboardingService = require('../services/onboarding.service');
 
 /**
  * Helper utility to fetch and map a Firestore collection with fallbacks.
  */
-const fetchCollection = async (collectionName, defaultData, isStringArray = false) => {
-  if (!db) return defaultData;
+const fetchCollection = async (collectionName, isStringArray = false) => {
+  if (!db) return [];
   try {
     const snapshot = await db.collection(collectionName).get();
-    if (snapshot.empty) return defaultData;
+    if (snapshot.empty) return [];
     return snapshot.docs.map(doc => {
       const data = doc.data();
       if (isStringArray) {
         return data.value || data.name || doc.id;
       }
       return {
+        _id: doc.id,
         id: doc.id,
         ...data
       };
     });
   } catch (error) {
     logger.warn(`Failed to fetch ${collectionName} from Firestore: ${error.message}`);
-    return defaultData;
+    return [];
   }
 };
 
@@ -37,15 +38,12 @@ const fetchCollection = async (collectionName, defaultData, isStringArray = fals
  */
 const getOnboardingDropdowns = async (req, res, next) => {
   try {
-    const countries = await fetchCollection('countries', masterData.countries);
-    const currencies = await fetchCollection('currencies', masterData.currencies);
-    const timezones = await fetchCollection('timezones', masterData.timezones);
-    const themes = await fetchCollection('themes', masterData.themes, true);
-    const locales = await fetchCollection('locales', masterData.locales, true);
-    const roles = await fetchCollection('roles', [
-      { id: 'VENUE_OWNER', name: 'Venue Owner' },
-      { id: 'USER', name: 'User' }
-    ]);
+    const countries = await fetchCollection('countries');
+    const currencies = await fetchCollection('currencies');
+    const timezones = await fetchCollection('timezones');
+    const themes = await fetchCollection('themes', true);
+    const locales = await fetchCollection('locales', true);
+    const roles = await fetchCollection('roles');
 
     res.status(200).json({
       success: true,
@@ -111,62 +109,8 @@ const preValidate = async (req, res, next) => {
  * Perform validation and register the new user/member record
  */
 const createAccount = async (req, res, next) => {
-  const { authProvider, personalData, location, verificationStatus, preferences, role, password } = req.body;
-
   try {
-    // Duplicate check for Email
-    const existingEmail = await Member.findOneByEmail(personalData.email);
-    if (existingEmail) {
-      return next(
-        new BadRequestError('The request payload contains invalid or missing data.', 'VALIDATION_FAILED', [
-          {
-            field: 'personalData.email',
-            rejectedValue: personalData.email,
-            reason: 'A user profile already exists with this email address.'
-          }
-        ])
-      );
-    }
-
-    // Duplicate check for Phone
-    const existingPhone = await Member.findOneByPhone(personalData.phoneNumber);
-    if (existingPhone) {
-      return next(
-        new BadRequestError('The request payload contains invalid or missing data.', 'VALIDATION_FAILED', [
-          {
-            field: 'personalData.phoneNumber',
-            rejectedValue: personalData.phoneNumber,
-            reason: 'A user profile already exists with this phone number.'
-          }
-        ])
-      );
-    }
-
-    // Map role type to numeric member_id (1 = VENUE_OWNER, 2 = USER)
-    const member_id = role === 'VENUE_OWNER' ? 1 : 2;
-
-    const identifier = `${personalData.firstName}_${personalData.lastName}`
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '_');
-
-    // Create the member record
-    const memberData = {
-      email_id: personalData.email,
-      identifier,
-      member_id,
-      phone_number: personalData.phoneNumber,
-      credentials: {
-        googile_auth_id: authProvider && authProvider.type === 'GOOGLE' ? authProvider.providerId : '',
-        password: password ? await cryptoUtils.hashPassword(password) : ''
-      },
-      varification: {
-        is_email: authProvider && authProvider.type === 'GOOGLE' ? true : (verificationStatus ? verificationStatus.isEmailVerified : false),
-        is_google_auth: authProvider && authProvider.type === 'GOOGLE',
-        is_mobile_number: verificationStatus ? verificationStatus.isPhoneVerified : false
-      }
-    };
-
-    const member = await Member.create(memberData);
+    const member = await onboardingService.createOnboardingAccount(req.body);
 
     res.status(201).json({
       success: true,
@@ -251,54 +195,112 @@ const sendOTP = async (req, res, next) => {
 };
 
 /**
- * Compare code against Redis. If correct, mark verification flag as true.
+ * Compare code against Redis or verify Firebase ID Token if type is email.
  */
 const verifyOTP = async (req, res, next) => {
-  const { type, target, code, userId } = req.body;
+  const { type, target, code, token, userId } = req.body;
 
-  if (!type || !target || !code) {
+  if (!type || !target) {
     return next(
-      new BadRequestError('Type, target, and verification code are required.', 'VALIDATION_FAILED')
+      new BadRequestError('Type and target are required.', 'VALIDATION_FAILED')
     );
   }
 
   try {
-    const redisKey = `otp:${type}:${target}`;
-    const savedOtp = await redis.get(redisKey);
+    // If type is email, verify Firebase ID token (Google Auth)
+    if (type === 'email') {
+      const verificationToken = token || code;
+      if (!verificationToken) {
+        return next(
+          new BadRequestError('Firebase ID Token is required for email verification.', 'VALIDATION_FAILED')
+        );
+      }
 
-    if (!savedOtp || savedOtp !== code) {
-      return next(
-        new BadRequestError('The request payload contains invalid or missing data.', 'VALIDATION_FAILED', [
-          {
-            field: 'code',
-            rejectedValue: code,
-            reason: 'Invalid or expired OTP verification code.'
+      // Verify the ID token using the Firebase Admin SDK
+      const admin = require('firebase-admin');
+      const decodedToken = await admin.auth().verifyIdToken(verificationToken);
+
+      const verifiedEmail = decodedToken.email;
+      const isEmailVerified = decodedToken.email_verified;
+
+      if (!verifiedEmail || !isEmailVerified) {
+        return next(
+          new BadRequestError('Email address is not verified in the provided Firebase credentials.', 'VALIDATION_FAILED')
+        );
+      }
+
+      // Update user verification status in Firestore
+      if (userId) {
+        const member = await Member.findById(userId);
+        if (member) {
+          member.varification.is_email = true;
+          await member.save();
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Email verification successful.',
+        data: {
+          email: verifiedEmail
+        }
+      });
+    }
+
+    // Phone verification flow (Redis OTP sent via Twilio)
+    if (type === 'phone') {
+      if (!code) {
+        return next(
+          new BadRequestError('Verification code is required.', 'VALIDATION_FAILED')
+        );
+      }
+
+      const redisKey = `otp:${type}:${target}`;
+      const savedOtp = await redis.get(redisKey);
+
+      if (!savedOtp || savedOtp !== code) {
+        return next(
+          new BadRequestError('The request payload contains invalid or missing data.', 'VALIDATION_FAILED', [
+            {
+              field: 'code',
+              rejectedValue: code,
+              reason: 'Invalid or expired OTP verification code.'
+            }
+          ])
+        );
+      }
+
+      // Clean up OTP key from cache
+      await redis.del(redisKey);
+
+      // Update user verification status in Firestore
+      if (userId) {
+        const member = await Member.findById(userId);
+        if (member) {
+          member.varification.is_mobile_number = true;
+          if (!member.phone_number) {
+            member.phone_number = target;
           }
-        ])
+          await member.save();
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Phone number verification successful.'
+      });
+    }
+
+    return next(
+      new BadRequestError('Invalid verification type specified.', 'VALIDATION_FAILED')
+    );
+  } catch (error) {
+    if (type === 'email') {
+      logger.error(`Firebase ID Token Verification failed: ${error.message}`);
+      return next(
+        new BadRequestError('Verification failed: Invalid or expired Firebase ID token.', 'VALIDATION_FAILED')
       );
     }
-
-    // Clean up OTP key from cache
-    await redis.del(redisKey);
-
-    // If userId provided, hydrate the record and update Firestore verification flags
-    if (userId) {
-      const member = await Member.findById(userId);
-      if (member) {
-        if (type === 'email') {
-          member.varification.is_email = true;
-        } else if (type === 'phone') {
-          member.varification.is_mobile_number = true;
-        }
-        await member.save();
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Verification successful.'
-    });
-  } catch (error) {
     next(error);
   }
 };
