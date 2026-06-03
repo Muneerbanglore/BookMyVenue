@@ -1,6 +1,6 @@
 const { Worker } = require('worker_threads');
 const path = require('path');
-const User = require('../models/user.model');
+const User = require('../schemas/user.schema');
 const { NotFoundError, AppError } = require('../utils/errors');
 const ErrorCodes = require('../constants/errorCodes');
 const logger = require('../config/logger');
@@ -32,6 +32,8 @@ const updateUserProfile = async (id, updateData) => {
   if (updateData.name) user.name = updateData.name;
   if (updateData.email) user.email = updateData.email;
   if (updateData.password) user.password = updateData.password; // Triggers password hash pre-save hook
+  if (updateData.location) user.location = updateData.location;
+  if (updateData.preferences) user.preferences = updateData.preferences;
 
   await user.save();
 
@@ -40,6 +42,8 @@ const updateUserProfile = async (id, updateData) => {
     name: user.name,
     email: user.email,
     role: user.role,
+    location: user.location,
+    preferences: user.preferences
   };
 };
 

@@ -8,6 +8,12 @@ const { NotFoundError } = require('./utils/errors');
 const ErrorCodes = require('./constants/errorCodes');
 
 const app = express();
+const path = require('path');
+
+// Serve the interactive developer testing client
+app.get('/test-client', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../test-client.html'));
+});
 
 // 1. Security HTTP Headers
 app.use(helmet());
@@ -40,6 +46,10 @@ const apiLimiter = rateLimit({
 
 // Apply rate limiter to all API endpoints
 app.use('/api/', apiLimiter);
+
+// const encryptionMiddleware = require('./middlewares/encryption.middleware');
+// Apply transparent payload encryption/decryption
+// app.use('/api/', encryptionMiddleware);
 
 // 5. Register application API routes
 app.use('/api/v1', routes);

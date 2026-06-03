@@ -13,7 +13,7 @@ class Member {
       const sanitized = data.phone_number.replace(/\D/g, '');
       this.phone_number = sanitized ? Number(sanitized) : 0;
     } else {
-      this.phone_number = typeof data.phone_number === 'number' ? data.phone_number : 0;
+      this.phone_number = typeof data.phone_number === 'number' ? data.phone_number :  0;
     }
 
     this.credentials = {

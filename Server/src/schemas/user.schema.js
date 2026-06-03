@@ -4,10 +4,12 @@ const cryptoUtils = require('../utils/crypto');
 class User {
   constructor(data) {
     this._id = data.id || data._id;
-    this.name = data.name;
+    this.name = data.name || '';
     this.email = data.email ? data.email.toLowerCase() : '';
-    this._password = data.password;
+    this._password = data.password || '';
     this.role = data.role || 'user';
+    this.location = data.location || null;
+    this.preferences = data.preferences || null;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this._passwordModified = false;
@@ -55,6 +57,8 @@ class User {
       email: this.email,
       password: this.password,
       role: this.role,
+      location: this.location,
+      preferences: this.preferences,
       createdAt: this.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -1,98 +1,47 @@
 {
   "info": {
     "_postman_id": "8a3d5e2c-fb04-4b55-ad8e-b816ef1e479a",
-    "name": "BookMyVenue API Collection",
-    "description": "Postman collection for BookMyVenue server application. Features include user auth, user profile, master dropdown data, pre-validation check, onboarding registration (Venue Owner / Regular User), and OTP send/verify capabilities.",
+    "name": "BookMyVenue Onboarding API",
+    "description": "Postman collection containing only the active, tested registration and verification endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Health Check",
-      "item": [
-        {
-          "name": "Server Health Check",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/health",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "health"
-              ]
-            },
-            "description": "Checks the operational status of the backend API server."
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Legacy Auth",
-      "item": [
-        {
-          "name": "Traditional Register User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/register",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "auth",
-                "register"
-              ]
-            },
-            "description": "Creates a legacy user profile with email/password and returns a JWT auth session token."
-          },
-          "response": []
+      "name": "Pre-Validate Onboarding Payload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"google-oauth2|1234567890\"\n  },\n  \"personalData\": {\n    \"firstName\": \"Muneer\",\n    \"lastName\": \"A\",\n    \"email\": \"muneerbnglur@gmail.com\",\n    \"phoneNumber\": \"+918921929760\"\n  },\n  \"role\": \"USER\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        {
-          "name": "Traditional User Login",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/login",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
-            },
-            "description": "Validates credentials and issues a JWT token for the user profile."
-          },
-          "response": []
+        "url": {
+          "raw": "{{base_url}}/onboarding/pre-validate",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "onboarding",
+            "pre-validate"
+          ]
         },
+        "description": "Validates schema structures and checks if the email or phone number is already registered prior to submission. Returns custom error format if validation fails."
+      },
+      "response": [
         {
-          "name": "Refresh Token",
-          "request": {
+          "name": "Success",
+          "originalRequest": {
             "method": "POST",
             "header": [
               {
@@ -103,206 +52,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/refresh",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "auth",
-                "refresh"
-              ]
-            },
-            "description": "Authenticates the refresh token, invalidates the old token, and returns a new Access and rotated Refresh token pair."
-          },
-          "response": []
-        },
-        {
-          "name": "Logout Session",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/logout",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "auth",
-                "logout"
-              ]
-            },
-            "description": "Deletes the refresh token from Redis, invalidating future session refreshes."
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "User Profile",
-      "item": [
-        {
-          "name": "Get Profile",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
+              "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"google-oauth2|1234567890\"\n  },\n  \"personalData\": {\n    \"firstName\": \"Muneer\",\n    \"lastName\": \"A\",\n    \"email\": \"muneerbnglur@gmail.com\",\n    \"phoneNumber\": \"+918921929760\"\n  },\n  \"role\": \"USER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/users/profile",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "users",
-                "profile"
-              ]
-            },
-            "description": "Retrieves the authenticated user profile details. Requires a valid JWT token."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Profile",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Test User\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/users/profile",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "users",
-                "profile"
-              ]
-            },
-            "description": "Modifies the profile data of the logged-in user."
-          },
-          "response": []
-        },
-        {
-          "name": "Heavy Task Execution (Admin)",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"iterations\": 50000000\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/users/heavy-task",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "users",
-                "heavy-task"
-              ]
-            },
-            "description": "Triggers a heavy CPU task handled by a native Worker Thread. Requires the admin role."
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Master Data",
-      "item": [
-        {
-          "name": "Get Onboarding Dropdowns",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/master/onboarding",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "master",
-                "onboarding"
-              ]
-            },
-            "description": "Returns list dropdowns for Country, Currency, Timezones, Themes, and Locales in a single API call for front-end caching (Redux/Context)."
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Onboarding & OTP",
-      "item": [
-        {
-          "name": "Pre-Validate Onboarding Payload",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"google-oauth2|1234567890\"\n  },\n  \"personalData\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phoneNumber\": \"+971500000000\"\n  },\n  \"location\": {\n    \"coordinates\": {\n      \"latitude\": 25.2048,\n      \"longitude\": 55.2708\n    },\n    \"metadata\": {\n      \"country\": \"United Arab Emirates\",\n      \"city\": \"Dubai\",\n      \"state\": \"Dubai\",\n      \"postalCode\": \"00000\",\n      \"timezone\": \"Asia/Dubai\",\n      \"locale\": \"en-AE\"\n    }\n  },\n  \"verificationStatus\": {\n    \"isEmailVerified\": true,\n    \"isPhoneVerified\": false,\n    \"verificationChannel\": \"OTP\"\n  },\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"notifications\": {\n      \"email\": true,\n      \"sms\": false,\n      \"push\": true\n    },\n    \"currency\": \"AED\",\n    \"marketingConsent\": false\n  },\n  \"role\": \"VENUE_OWNER\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/onboarding/pre-validate",
@@ -313,14 +68,59 @@
                 "onboarding",
                 "pre-validate"
               ]
-            },
-            "description": "Validates schema structures and checks if the email or phone number is already registered prior to submission. Returns custom error format if validation fails."
+            }
           },
-          "response": []
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Payload is valid and available for registration.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Send OTP Code",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"phone\",\n  \"target\": \"+918921929760\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
+        "url": {
+          "raw": "{{base_url}}/onboarding/otp/send",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "onboarding",
+            "otp",
+            "send"
+          ]
+        },
+        "description": "Generates a 6-digit OTP code, stores it in Redis with a 5-minute TTL, and logs the code in the container console for verification."
+      },
+      "response": [
         {
-          "name": "Create Onboarding Account",
-          "request": {
+          "name": "Success",
+          "originalRequest": {
             "method": "POST",
             "header": [
               {
@@ -331,37 +131,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"google-oauth2|1234567890\"\n  },\n  \"personalData\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phoneNumber\": \"+971500000000\"\n  },\n  \"location\": {\n    \"coordinates\": {\n      \"latitude\": 25.2048,\n      \"longitude\": 55.2708\n    },\n    \"metadata\": {\n      \"country\": \"United Arab Emirates\",\n      \"city\": \"Dubai\",\n      \"state\": \"Dubai\",\n      \"postalCode\": \"00000\",\n      \"timezone\": \"Asia/Dubai\",\n      \"locale\": \"en-AE\"\n    }\n  },\n  \"verificationStatus\": {\n    \"isEmailVerified\": true,\n    \"isPhoneVerified\": false,\n    \"verificationChannel\": \"OTP\"\n  },\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"notifications\": {\n      \"email\": true,\n      \"sms\": false,\n      \"push\": true\n    },\n    \"currency\": \"AED\",\n    \"marketingConsent\": false\n  },\n  \"role\": \"VENUE_OWNER\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/onboarding/user/create_account",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "onboarding",
-                "user",
-                "create_account"
-              ]
-            },
-            "description": "Registers a new member account (role mapping: VENUE_OWNER -> 1, USER -> 2) in the members collection. Returns status 201."
-          },
-          "response": []
-        },
-        {
-          "name": "Send OTP Code",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+              "raw": "{\n  \"type\": \"phone\",\n  \"target\": \"+918921929760\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"phone\",\n  \"target\": \"+971500000000\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/onboarding/otp/send",
@@ -373,14 +148,59 @@
                 "otp",
                 "send"
               ]
-            },
-            "description": "Generates a 6-digit OTP code, stores it in Redis with a 5-minute TTL, and logs the code in the container console for verification."
+            }
           },
-          "response": []
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Verification OTP successfully sent to +918921929760.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Verify OTP Code",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"764440\",\n  \"target\": \"+918921929760\",\n  \"type\": \"phone\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
+        "url": {
+          "raw": "{{base_url}}/onboarding/otp/verify",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "onboarding",
+            "otp",
+            "verify"
+          ]
+        },
+        "description": "Compares code from Redis. On success, updates the verification status in the members collection."
+      },
+      "response": [
         {
-          "name": "Verify OTP Code",
-          "request": {
+          "name": "Success",
+          "originalRequest": {
             "method": "POST",
             "header": [
               {
@@ -391,7 +211,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"type\": \"phone\",\n  \"target\": \"+971500000000\",\n  \"code\": \"123456\",\n  \"userId\": \"doc_id_here\"\n}"
+              "raw": "{\n  \"code\": \"764440\",\n  \"target\": \"+918921929760\",\n  \"type\": \"phone\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/onboarding/otp/verify",
@@ -403,120 +228,99 @@
                 "otp",
                 "verify"
               ]
-            },
-            "description": "Compares code from Redis. On success, updates the verification status in the members collection."
-          }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Phone number verification successful.\"\n}"
         }
       ]
     },
     {
-      "name": "Google Maps Proxy",
-      "item": [
-        {
-          "name": "Places Autocomplete",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/maps/places/autocomplete?input=dubai",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "maps",
-                "places",
-                "autocomplete"
-              ],
-              "query": [
-                {
-                  "key": "input",
-                  "value": "dubai"
-                }
-              ]
-            },
-            "description": "Securely proxies the Places Autocomplete search query to Google without revealing the API key to the frontend."
-          },
-          "response": []
+      "name": "Create Onboarding Account",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"4V7ERJTBKZSWRx7NDpWhfTYI9g22\",\n    \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6ImM5YTBjMWRlYWEyN2JjNjMyNTUzYmM4MWEyMmQ4NzY1MWM3MTMyY2IiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiTXVuZWVyIEEiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSXdqZS1MQVM2MnhGWXNyT29OTDBaeFhXOWQ4M0RTNloyY3pEYl9NUURtdmxJa3p3PXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2Jvb2stbXktdmVudWUtMjQwZTkiLCJhdWQiOiJib29rLW15LXZlbnVlLTI0MGU5IiwiYXV0aF90aW1lIjoxNzgwMTUyODEyLCJ1c2VyX2lkIjoiNFY3RVJKVEJLWlNXUng3TkRwV2hmVFlJOWcyMiIsInN1YiI6IjRWN0VSSlRCS1pTV1J4N05EcFdoZlRZSTlnMjIiLCJpYXQiOjE3ODAxNTI4MTIsImV4cCI6MTc4MDE1NjQxMiwiZW1haWwiOiJtdW5lZXJibmdsdXJAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZ29vZ2xlLmNvbSI6WyIxMTE2MTMxMDY4NjI3ODU3MzA3MDQiXSwiZW1haWwiOlsibXVuZWVyYm5nbHVyQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6Imdvb2dsZS5jb20ifX0.fd0Hnp3uDozFO1Obuq9PuJxLpAA_w-OrXvY4tgQG2SsBdth2iNQWngnwwgkLwY8t7jvOW6h5VRRTYSi6-jbslNrDpv9cVu3JypEpxg4k89BRkM3yjWXiu7vyQ7_GS7PpY8ccYRgI8n3jkHVmq9Tg-Agbi5644OakNmL0V4bHhnSstiyGFRgp4Xe7xY2ylu1qs5CLFHIZwDcdWD88eWBh_a4wsySSREZamJ63U3uvTiKB-GcLiyQlNqUXiKBrOfRdsDEpGUpj_BZ3qVWpyr1ZuXGy8HSFmumlEPv4R_DUyNXMpRBsXt4-ZD9NzW7xkGr82kxmU5X90eRAwJjyvyM2HA\"\n  },\n  \"personalData\": {\n    \"firstName\": \"Muneer\",\n    \"lastName\": \"A\",\n    \"email\": \"muneerbnglur@gmail.com\",\n    \"phoneNumber\": \"+918921929760\"\n  },\n  \"role\": \"USER\",\n  \"password\": \"muneer@198\",\n  \"verificationStatus\": {\n    \"isEmailVerified\": true,\n    \"isPhoneVerified\": true,\n    \"verificationChannel\": \"OTP\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        {
-          "name": "Place Details (Get Coordinates)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/maps/places/details?placeId=ChIJRzd7y1wVmltgFk9C",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "maps",
-                "places",
-                "details"
-              ],
-              "query": [
-                {
-                  "key": "placeId",
-                  "value": "ChIJRzd7y1wVmltgFk9C"
-                }
-              ]
-            },
-            "description": "Retrieves the exact coordinates (latitude and longitude) and details of a place ID using the secure backend proxy."
-          },
-          "response": []
+        "url": {
+          "raw": "{{base_url}}/onboarding/user/create_account",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "onboarding",
+            "user",
+            "create_account"
+          ]
         },
+        "description": "Registers a new member account (role mapping: VENUE_OWNER -> 1, USER -> 2) in the members collection. Returns status 201."
+      },
+      "response": [
         {
-          "name": "Directions (Routing)",
-          "request": {
-            "method": "GET",
-            "header": [],
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authProvider\": {\n    \"type\": \"GOOGLE\",\n    \"providerId\": \"4V7ERJTBKZSWRx7NDpWhfTYI9g22\",\n    \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6ImM5YTBjMWRlYWEyN2JjNjMyNTUzYmM4MWEyMmQ4NzY1MWM3MTMyY2IiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiTXVuZWVyIEEiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSXdqZS1MQVM2MnhGWXNyT29OTDBaeFhXOWQ4M0RTNloyY3pEYl9NUURtdmxJa3p3PXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2Jvb2stbXktdmVudWUtMjQwZTkiLCJhdWQiOiJib29rLW15LXZlbnVlLTI0MGU5IiwiYXV0aF90aW1lIjoxNzgwMTUyODEyLCJ1c2VyX2lkIjoiNFY3RVJKVEJLWlNXUng3TkRwV2hmVFlJOWcyMiIsInN1YiI6IjRWN0VSSlRCS1pTV1J4N05EcFdoZlRZSTlnMjIiLCJpYXQiOjE3ODAxNTI4MTIsImV4cCI6MTc4MDE1NjQxMiwiZW1haWwiOiJtdW5lZXJibmdsdXJAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZ29vZ2xlLmNvbSI6WyIxMTE2MTMxMDY4NjI3ODU3MzA3MDQiXSwiZW1haWwiOlsibXVuZWVyYm5nbHVyQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6Imdvb2dsZS5jb20ifX0.fd0Hnp3uDozFO1Obuq9PuJxLpAA_w-OrXvY4tgQG2SsBdth2iNQWngnwwgkLwY8t7jvOW6h5VRRTYSi6-jbslNrDpv9cVu3JypEpxg4k89BRkM3yjWXiu7vyQ7_GS7PpY8ccYRgI8n3jkHVmq9Tg-Agbi5644OakNmL0V4bHhnSstiyGFRgp4Xe7xY2ylu1qs5CLFHIZwDcdWD88eWBh_a4wsySSREZamJ63U3uvTiKB-GcLiyQlNqUXiKBrOfRdsDEpGUpj_BZ3qVWpyr1ZuXGy8HSFmumlEPv4R_DUyNXMpRBsXt4-ZD9NzW7xkGr82kxmU5X90eRAwJjyvyM2HA\"\n  },\n  \"personalData\": {\n    \"firstName\": \"Muneer\",\n    \"lastName\": \"A\",\n    \"email\": \"muneerbnglur@gmail.com\",\n    \"phoneNumber\": \"+918921929760\"\n  },\n  \"role\": \"USER\",\n  \"password\": \"muneer@198\",\n  \"verificationStatus\": {\n    \"isEmailVerified\": true,\n    \"isPhoneVerified\": true,\n    \"verificationChannel\": \"OTP\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{base_url}}/maps/directions?origin=DubaiMall&destination=DubaiMarina",
+              "raw": "{{base_url}}/onboarding/user/create_account",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "maps",
-                "directions"
-              ],
-              "query": [
-                {
-                  "key": "origin",
-                  "value": "DubaiMall"
-                },
-                {
-                  "key": "destination",
-                  "value": "DubaiMarina"
-                }
+                "onboarding",
+                "user",
+                "create_account"
               ]
-            },
-            "description": "Fetches route polyline coordinates and directions between origin and destination securely."
+            }
           },
-          "response": []
-        },
-        {
-          "name": "Geocode / Reverse Geocode",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/maps/geocode?latlng=25.2048,55.2708",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "maps",
-                "geocode"
-              ],
-              "query": [
-                {
-                  "key": "latlng",
-                  "value": "25.2048,55.2708"
-                }
-              ]
-            },
-            "description": "Converts coordinates (latitude/longitude) to address details or vice-versa securely using backend proxy."
-          },
-          "response": []
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"User account created successfully.\",\n  \"data\": {\n    \"userId\": \"aSKyOHSBuGv6RVeLCRaT\",\n    \"createdAt\": \"2026-05-30T15:05:47.748Z\",\n    \"status\": \"ACTIVE\",\n    \"requiresOnboardingStep2\": false\n  }\n}"
         }
       ]
     }

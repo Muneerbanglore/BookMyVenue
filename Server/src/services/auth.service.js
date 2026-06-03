@@ -1,77 +1,28 @@
-const User = require('../models/user.model');
-const { ConflictError, BadRequestError } = require('../utils/errors');
+const Member = require('../schemas/member.schema');
+const { BadRequestError } = require('../utils/errors');
 const cryptoUtils = require('../utils/crypto');
 const { enqueueTask } = require('./queue.service');
 const ErrorCodes = require('../constants/errorCodes');
 const redis = require('../config/queue');
 
 /**
- * Register a new user profile
- * @param {Object} userData - User register details
- */
-const registerUser = async (userData) => {
-  const { name, email, password, role } = userData;
-
-  // Check if user already exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new ConflictError('A user profile already exists with this email address.');
-  }
-
-  // Save new user instance to database
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role,
-  });
-
-  // Generate session tokens
-  const tokenPayload = { id: user._id, role: user.role };
-  const accessToken = cryptoUtils.generateToken(tokenPayload);
-  const refreshToken = cryptoUtils.generateRefreshToken(tokenPayload);
-
-  // Store refresh token in Redis (7 days TTL)
-  await redis.set(`refresh_token:${refreshToken}`, JSON.stringify(tokenPayload), 'EX', 604800);
-
-  // Asynchronously dispatch background setup notifications
-  await enqueueTask('email_notification', {
-    email: user.email,
-    name: user.name,
-  }).catch(() => {
-    // Graceful swallow: queue errors shouldn't break core user registration
-  });
-
-  return {
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    accessToken,
-    refreshToken,
-  };
-};
-
-/**
- * Authenticate existing credentials and grant token
+ * Authenticate existing credentials and grant token using Member model
  * @param {Object} credentials - User credentials (email, password)
  */
 const loginUser = async (credentials) => {
   const { email, password } = credentials;
 
-  // Retrieve user with password select explicitly enabled
-  const user = await User.findOne({ email }).select('+password');
-  if (!user) {
+  // Retrieve member by email
+  const member = await Member.findOneByEmail(email);
+  if (!member) {
     throw new BadRequestError(
       'Invalid email or password combination.',
       ErrorCodes.AUTH_INVALID_CREDENTIALS
     );
   }
 
-  // Validate passwords
-  const isMatch = await user.matchPassword(password);
+  // Validate passwords (since password is inside credentials.password)
+  const isMatch = await cryptoUtils.comparePassword(password, member.credentials.password);
   if (!isMatch) {
     throw new BadRequestError(
       'Invalid email or password combination.',
@@ -79,27 +30,27 @@ const loginUser = async (credentials) => {
     );
   }
 
-  // Generate session tokens
-  const tokenPayload = { id: user._id, role: user.role };
+  // Generate session tokens (member_id 1 = VENUE_OWNER, 2 = USER)
+  const tokenPayload = { id: member.id, role: member.member_id === 1 ? 'VENUE_OWNER' : 'USER' };
   const accessToken = cryptoUtils.generateToken(tokenPayload);
   const refreshToken = cryptoUtils.generateRefreshToken(tokenPayload);
 
   // Store refresh token in Redis (7 days TTL)
   await redis.set(`refresh_token:${refreshToken}`, JSON.stringify(tokenPayload), 'EX', 604800);
 
-  // Dispath asynchronous user audit job
+  // Dispatch asynchronous user audit job
   await enqueueTask('audit_log', {
-    userId: user._id,
+    userId: member.id,
   }).catch(() => {
     // Graceful swallow
   });
 
   return {
     user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      id: member.id,
+      name: member.identifier,
+      email: member.email_id,
+      role: member.member_id === 1 ? 'VENUE_OWNER' : 'USER',
     },
     accessToken,
     refreshToken,
@@ -107,6 +58,5 @@ const loginUser = async (credentials) => {
 };
 
 module.exports = {
-  registerUser,
   loginUser,
 };

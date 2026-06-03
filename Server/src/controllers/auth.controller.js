@@ -7,18 +7,6 @@ const cryptoUtils = require('../utils/crypto');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 
 /**
- * @desc    Register a new user
- * @route   POST /api/v1/auth/register
- * @access  Public
- */
-const register = asyncHandler(async (req, res) => {
-  const result = await authService.registerUser(req.body);
-  res
-    .status(HttpStatusCodes.CREATED)
-    .json(formatSuccess('User profile registered successfully.', result));
-});
-
-/**
  * @desc    Authenticate credentials and issue token
  * @route   POST /api/v1/auth/login
  * @access  Public
@@ -93,7 +81,6 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  register,
   login,
   refresh,
   logout,

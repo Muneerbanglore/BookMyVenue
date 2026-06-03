@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookMyVenue - Interactive Registration & Onboarding</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase SDK Compat (Required for Google Auth only) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <!-- CryptoJS Library for optional AES-256-CBC -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at top left, #0f172a, #020617);
+    }
+    h1, h2, h3 {
+      font-family: 'Outfit', sans-serif;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.2);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.3);
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.5);
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-6xl mx-auto space-y-8">
+    
+    <!-- Header -->
+    <div class="text-center space-y-3">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-semibold tracking-wide uppercase">
+        BookMyVenue Onboarding
+      </div>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+        Registration & Verification Client
+      </h1>
+      <p class="text-slate-400 max-w-xl mx-auto text-sm md:text-base">
+        A unified portal containing identity verification (Firebase Auth for Email, Twilio SMS for Phone) and account creations.
+      </p>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Left Column: Unified Registration Form (8 Cols) -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <div class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden transition-all duration-300">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl"></div>
+          
+          <!-- Role selector tabs -->
+          <div class="flex p-1.5 bg-slate-950/80 rounded-xl border border-slate-800 mb-8">
+            <button onclick="selectRole('USER')" id="tab-user" class="flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md">
+              I am a User
+            </button>
+            <button onclick="selectRole('VENUE_OWNER')" id="tab-owner" class="flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200">
+              I am a Venue Owner
+            </button>
+          </div>
+
+          <!-- Registration Form -->
+          <div class="space-y-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-400">First Name</label>
+                <input type="text" id="first-name" placeholder="John" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500/50 transition-all"/>
+              </div>
+              <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-400">Last Name</label>
+                <input type="text" id="last-name" placeholder="Doe" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500/50 transition-all"/>
+              </div>
+            </div>
+
+            <!-- Email (Google Auth verified) -->
+            <div class="space-y-1">
+              <label class="text-xs font-semibold text-slate-400">Email Address</label>
+              <div class="relative flex items-center">
+                <input type="email" id="email" placeholder="john.doe@example.com" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl pl-4 pr-24 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500/50 transition-all"/>
+                <button onclick="loginWithGoogle()" id="btn-verify-email" class="absolute right-2 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-semibold rounded-lg transition-all">
+                  Verify Link
+                </button>
+                <span id="badge-email-verified" class="hidden absolute right-3 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-lg select-none">
+                  ✓ Verified
+                </span>
+              </div>
+            </div>
+
+            <!-- Phone Number (Twilio OTP verified) -->
+            <div class="space-y-1">
+              <label class="text-xs font-semibold text-slate-400">Phone Number (with Country Code)</label>
+              <div class="relative flex items-center">
+                <input type="text" id="phone-number" value="+91" placeholder="+919876543210" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl pl-4 pr-24 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500/50 transition-all"/>
+                <button onclick="sendTwilioSMS()" id="btn-verify-phone" class="absolute right-2 px-3 py-1.5 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 text-pink-400 text-xs font-semibold rounded-lg transition-all">
+                  Verify Link
+                </button>
+                <span id="badge-phone-verified" class="hidden absolute right-3 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-lg select-none">
+                  ✓ Verified
+                </span>
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div class="space-y-1">
+              <label class="text-xs font-semibold text-slate-400">Password</label>
+              <input type="password" id="password" placeholder="••••••••" class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500/50 transition-all"/>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-4">
+              <button onclick="submitRegistration()" class="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-sm uppercase tracking-wider transition-all duration-200 shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Settings & Dev Logs Console (5 Cols) -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <!-- Dev Config Panel (Collapsible) -->
+        <div class="glass-card rounded-2xl border-slate-800/80 shadow-xl overflow-hidden">
+          <button onclick="toggleDevPanel()" class="w-full px-6 py-4 flex justify-between items-center bg-slate-900/40 hover:bg-slate-900/60 transition-all border-b border-slate-800/80 focus:outline-none select-none">
+            <span class="text-sm font-bold text-slate-300 uppercase tracking-wide flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Developer Settings
+            </span>
+            <span id="dev-arrow" class="text-slate-400 transition-transform duration-200 transform">▼</span>
+          </button>
+          
+          <div id="dev-settings-content" class="p-6 space-y-4">
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase font-bold text-slate-400">Backend API URL</label>
+              <input type="text" id="api-url" value="http://localhost:5000/api/v1" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500/50 transition-all"/>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label class="text-[10px] uppercase font-bold text-slate-400">AES Secret Key</label>
+                <input type="text" id="aes-key" value="12345678901234567890123456789012" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-emerald-400 focus:outline-none focus:border-indigo-500/50 transition-all"/>
+              </div>
+              
+              <div class="flex items-center gap-2 pt-5 pl-2">
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" id="enable-encryption" class="w-4 h-4 rounded bg-slate-900 border-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                  <span class="text-[10px] uppercase font-bold text-slate-400">AES Encryption</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- API Response Console Logs -->
+        <div class="glass-card rounded-2xl p-6 border-slate-800 shadow-xl space-y-3">
+          <div class="flex justify-between items-center">
+            <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">API Response Logs</label>
+            <button onclick="clearConsole()" class="text-[10px] text-rose-400 hover:underline">Clear Logs</button>
+          </div>
+          <pre id="console-log" class="custom-scrollbar w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-emerald-400 overflow-x-auto h-64 max-h-64 select-text">{}</pre>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- OTP Modal Popup Overlay -->
+  <div id="otp-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-card rounded-2xl p-6 w-full max-w-sm border border-slate-800 shadow-2xl scale-95 transform transition-transform duration-200">
+      <div class="flex items-center gap-3 mb-3 text-pink-400">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        <h3 class="text-lg font-bold text-slate-100">Verify Phone Number</h3>
+      </div>
+      <p class="text-xs text-slate-400 mb-5 leading-relaxed">
+        We've dispatched an SMS OTP code to your number <span id="modal-phone-num" class="text-pink-400 font-semibold font-mono"></span>.
+      </p>
+
+      <div class="space-y-4">
+        <div class="space-y-1">
+          <label class="text-[10px] uppercase font-bold text-slate-500">6-Digit Verification Code</label>
+          <input type="text" id="modal-otp-code" placeholder="123456" class="w-full bg-slate-950 border border-slate-850 rounded-xl py-3 text-center text-2xl tracking-widest font-mono text-slate-100 focus:outline-none focus:border-pink-500/50 transition-all"/>
+        </div>
+        
+        <div class="flex gap-3 pt-2">
+          <button onclick="closeOTPModal()" class="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 text-xs font-bold rounded-xl transition-all">
+            Cancel
+          </button>
+          <button onclick="verifySMSCode()" class="flex-1 py-2.5 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-pink-500/10">
+            Verify Code
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase Web Config (for Google Auth Popup)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBTb_KTLCLhQgAdkT-2M3uYzEJxrMC4_rw",
+      authDomain: "book-my-venue-240e9.firebaseapp.com",
+      projectId: "book-my-venue-240e9",
+      storageBucket: "book-my-venue-240e9.firebasestorage.app",
+      messagingSenderId: "667763493977",
+      appId: "1:667763493977:web:aa088dd81f9f46b5af7548",
+      measurementId: "G-CRWX6GB7QY"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Client States
+    let currentRole = 'USER';
+    let googleTokenVal = '';
+    let googleUidVal = '';
+    let emailVerified = false;
+    let phoneVerified = false;
+
+    // Log response details to the panel
+    function logResponse(data) {
+      document.getElementById('console-log').textContent = JSON.stringify(data, null, 2);
+    }
+
+    function clearConsole() {
+      document.getElementById('console-log').textContent = '{}';
+    }
+
+    // Role Selector toggle helper
+    function selectRole(role) {
+      currentRole = role;
+      const tabUser = document.getElementById('tab-user');
+      const tabOwner = document.getElementById('tab-owner');
+      
+      if (role === 'USER') {
+        tabUser.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md";
+        tabOwner.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
+      } else {
+        tabUser.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
+        tabOwner.className = "flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-200 bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md";
+      }
+    }
+
+    // Collapsible developer settings panel toggle
+    let isDevOpen = true;
+    function toggleDevPanel() {
+      isDevOpen = !isDevOpen;
+      const content = document.getElementById('dev-settings-content');
+      const arrow = document.getElementById('dev-arrow');
+      if (isDevOpen) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+      } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(-90deg)';
+      }
+    }
+
+    // Encrypted API Fetch Wrapper
+    async function fetchAPI(url, payload) {
+      const enableEncryption = document.getElementById('enable-encryption').checked;
+      console.log(`[API Call] Requesting ${url}`, { encrypted: enableEncryption, payload });
+      
+      if (!enableEncryption) {
+        logResponse({ message: "Sending Plaintext Payload...", payload: payload });
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const resData = await response.json();
+        console.log(`[API Call] Response from ${url}:`, resData);
+        return resData;
+      }
+
+      const aesKey = document.getElementById('aes-key').value;
+      const plainText = JSON.stringify(payload);
+      
+      // Parse key (supports 64-char Hex format or 32-char plaintext)
+      const key = aesKey.length === 64 ? CryptoJS.enc.Hex.parse(aesKey) : CryptoJS.enc.Utf8.parse(aesKey);
+      const iv = CryptoJS.lib.WordArray.random(16);
+      
+      // Encrypt outgoing body payload
+      const encrypted = CryptoJS.AES.encrypt(plainText, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      
+      const encryptedPayload = {
+        iv: CryptoJS.enc.Base64.stringify(iv),
+        encryptedData: encrypted.toString()
+      };
+
+      logResponse({ message: "Sending Encrypted Payload...", payload: encryptedPayload });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encryptedPayload)
+      });
+
+      const resData = await response.json();
+      console.log(`[API Call] Encrypted Response from ${url}:`, resData);
+
+      // Decrypt incoming response payload if encrypted
+      if (resData && resData.encryptedData && resData.iv) {
+        const resIv = CryptoJS.enc.Base64.parse(resData.iv);
+        const decrypted = CryptoJS.AES.decrypt(resData.encryptedData, key, {
+          iv: resIv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        });
+        const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+        const decryptedJson = JSON.parse(decryptedText);
+        console.log(`[API Call] Decrypted Response from ${url}:`, decryptedJson);
+        return decryptedJson;
+      }
+
+      return resData;
+    }
+
+    // Google Sign-In (Verifies Email & retrieves credentials)
+    async function loginWithGoogle() {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+        
+        googleTokenVal = await user.getIdToken();
+        googleUidVal = user.uid;
+        emailVerified = true;
+
+        // Autofill forms and disable modifications
+        const nameParts = (user.displayName || "Google User").split(" ");
+        document.getElementById('first-name').value = nameParts[0] || "Google";
+        document.getElementById('last-name').value = nameParts.slice(1).join(" ") || "User";
+        
+        const emailInput = document.getElementById('email');
+        emailInput.value = user.email;
+        emailInput.readOnly = true;
+
+        document.getElementById('btn-verify-email').classList.add('hidden');
+        document.getElementById('badge-email-verified').classList.remove('hidden');
+
+        logResponse({ 
+          message: "Google Auth successful. Email verified.", 
+          email: user.email,
+          uid: googleUidVal
+        });
+      } catch (err) {
+        logResponse({ error: "Google Auth failed", message: err.message });
+      }
+    }
+
+    // Send SMS verification OTP via Twilio
+    async function sendTwilioSMS() {
+      const phoneNum = document.getElementById('phone-number').value;
+      if (!phoneNum || phoneNum === "+91" || phoneNum.length < 5) {
+        alert("Please enter a valid phone number with country code (e.g. +91XXXXXXXXXX)");
+        return;
+      }
+      const baseUrl = document.getElementById('api-url').value;
+
+      try {
+        const data = await fetchAPI(`${baseUrl}/onboarding/otp/send`, { type: 'phone', target: phoneNum });
+        logResponse(data);
+
+        if (data.success) {
+          document.getElementById('modal-phone-num').textContent = phoneNum;
+          openOTPModal();
+        }
+      } catch (err) {
+        logResponse({ error: "SMS Dispatch failed", message: err.message });
+      }
+    }
+
+    // Verify SMS Code
+    async function verifySMSCode() {
+      const code = document.getElementById('modal-otp-code').value;
+      const phoneNum = document.getElementById('phone-number').value;
+      if (!code) {
+        alert("Please enter the verification code");
+        return;
+      }
+      const baseUrl = document.getElementById('api-url').value;
+
+      try {
+        const data = await fetchAPI(`${baseUrl}/onboarding/otp/verify`, {
+          type: "phone",
+          target: phoneNum,
+          code: code
+        });
+        logResponse(data);
+
+        if (data.success) {
+          phoneVerified = true;
+          document.getElementById('phone-number').readOnly = true;
+          document.getElementById('btn-verify-phone').classList.add('hidden');
+          document.getElementById('badge-phone-verified').classList.remove('hidden');
+          closeOTPModal();
+        }
+      } catch (err) {
+        logResponse({ error: "Phone verification failed", message: err.message });
+      }
+    }
+
+    // Modal popup utilities
+    function openOTPModal() {
+      const modal = document.getElementById('otp-modal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.firstElementChild.classList.remove('scale-95');
+      }, 50);
+    }
+
+    function closeOTPModal() {
+      const modal = document.getElementById('otp-modal');
+      modal.classList.add('opacity-0');
+      modal.firstElementChild.classList.add('scale-95');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 200);
+    }
+
+    // Submit complete onboarding registration form
+    async function submitRegistration() {
+      const firstName = document.getElementById('first-name').value;
+      const lastName = document.getElementById('last-name').value;
+      const email = document.getElementById('email').value;
+      const phoneNumber = document.getElementById('phone-number').value;
+      const password = document.getElementById('password').value;
+      const baseUrl = document.getElementById('api-url').value;
+
+      if (!firstName || !lastName || !email || !phoneNumber) {
+        alert("Please complete the Name, Email and Phone Number fields.");
+        return;
+      }
+
+      if (!emailVerified) {
+        alert("Please click 'Verify Link' beside the Email field to verify via Google Auth.");
+        return;
+      }
+
+      if (!phoneVerified) {
+        alert("Please click 'Verify Link' beside the Phone Number field to complete SMS OTP verification.");
+        return;
+      }
+
+      const payload = {
+        authProvider: {
+          type: "GOOGLE",
+          providerId: googleUidVal,
+          idToken: googleTokenVal
+        },
+        personalData: {
+          firstName,
+          lastName,
+          email,
+          phoneNumber
+        },
+        role: currentRole,
+        password: password || undefined,
+        verificationStatus: {
+          isEmailVerified: emailVerified,
+          isPhoneVerified: phoneVerified,
+          verificationChannel: "OTP"
+        }
+      };
+
+      try {
+        const data = await fetchAPI(`${baseUrl}/onboarding/user/create_account`, payload);
+        logResponse(data);
+      } catch (err) {
+        logResponse({ error: "Registration failed", message: err.message });
+      }
+    }
+  </script>
+</body>
+</html>
