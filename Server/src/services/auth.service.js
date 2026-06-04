@@ -134,7 +134,7 @@ const verifyOtpLogin = async (email, otp) => {
       id: member.id,
       name: member.identifier,
       email: member.email_id,
-      role: member.member_id === 1 ? 'VENUE_OWNER' : 'USER',
+      role: member.member_id === 3 ? 'VENUE_OWNER' : 'USER',
     },
     accessToken,
     refreshToken,
