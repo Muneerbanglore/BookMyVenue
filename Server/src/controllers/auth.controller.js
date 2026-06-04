@@ -7,12 +7,30 @@ const cryptoUtils = require('../utils/crypto');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 
 /**
- * @desc    Authenticate credentials and issue token
- * @route   POST /api/v1/auth/login
+ * @desc    Pre-validate credentials and dispatch OTP
+ * @route   POST /api/v1/auth/prevalidation
  * @access  Public
  */
 const login = asyncHandler(async (req, res) => {
-  const result = await authService.loginUser(req.body);
+  const result = await authService.preValidateLogin(req.body);
+  res
+    .status(HttpStatusCodes.OK)
+    .json(formatSuccess('Credentials verified. Verification OTP sent to your registered email address.', result));
+});
+
+/**
+ * @desc    Verify OTP and complete authentication, issuing tokens
+ * @route   POST /api/v1/auth/validation
+ * @access  Public
+ */
+const otpLogin = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new BadRequestError('Email and OTP are required.', 'VALIDATION_FAILED');
+  }
+
+  const result = await authService.verifyOtpLogin(email, otp);
   res
     .status(HttpStatusCodes.OK)
     .json(formatSuccess('User authenticated successfully.', result));
@@ -82,6 +100,7 @@ const logout = asyncHandler(async (req, res) => {
 
 module.exports = {
   login,
+  otpLogin,
   refresh,
   logout,
 };

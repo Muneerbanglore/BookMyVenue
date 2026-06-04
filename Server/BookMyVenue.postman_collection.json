@@ -323,6 +323,162 @@
           "body": "{\n  \"success\": true,\n  \"message\": \"User account created successfully.\",\n  \"data\": {\n    \"userId\": \"aSKyOHSBuGv6RVeLCRaT\",\n    \"createdAt\": \"2026-05-30T15:05:47.748Z\",\n    \"status\": \"ACTIVE\",\n    \"requiresOnboardingStep2\": false\n  }\n}"
         }
       ]
+    },
+    {
+      "name": "Pre-validate Login Credentials",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"Password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/prevalidation",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "prevalidation"
+          ]
+        },
+        "description": "Checks the email/password credentials. If correct, generates a 6-digit OTP code, stores it in Redis with a 5-minute TTL, sends it to the user's email, and returns a success response with otpRequired: true."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"Password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/prevalidation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "prevalidation"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Credentials verified. Verification OTP sent to your registered email address.\",\n  \"data\": {\n    \"email\": \"testuser@example.com\",\n    \"otpRequired\": true\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Validate Login OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"otp\": \"123456\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/validation",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "validation"
+          ]
+        },
+        "description": "Compares the login OTP against the cached code in Redis. On success, invalidates the code and returns the JWT access token, refresh token, and basic user details."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/validation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "validation"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"User authenticated successfully.\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"82i3Cy2zqyrlKfw28zhc\",\n      \"name\": \"Test User\",\n      \"email\": \"testuser@example.com\",\n      \"role\": \"USER\"\n    },\n    \"accessToken\": \"eyJhbGciOi...\",\n    \"refreshToken\": \"eyJhbGciOi...\"\n  }\n}"
+        }
+      ]
     }
   ],
   "variable": [
