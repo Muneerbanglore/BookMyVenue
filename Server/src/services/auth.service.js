@@ -19,7 +19,11 @@ const preValidateLogin = async (credentials) => {
     );
   }
 
-  const isMatch = await cryptoUtils.comparePassword(password, member.credentials.password);
+  const dbPassword = member.credentials.password;
+  const isMatch = (dbPassword && dbPassword.startsWith('$2'))
+    ? await cryptoUtils.comparePassword(password, dbPassword)
+    : password === dbPassword;
+
   if (!isMatch) {
     throw new BadRequestError(
       'Invalid email or password combination.',
