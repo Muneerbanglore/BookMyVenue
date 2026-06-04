@@ -75,10 +75,13 @@ const preValidateLogin = async (credentials) => {
     </div>
   `;
 
-  await mailer.sendEmail({
+  // Send the verification email in the background to prevent SMTP connection blocks from hanging the request (Render blocks port 587 by default)
+  mailer.sendEmail({
     to: email,
     subject: `[BookMyVenue] Login Verification - OTP: ${otpCode}`,
     html: emailHtml
+  }).catch((err) => {
+    logger.error(`Failed to send verification email: ${err.message}`);
   });
 
   return {
