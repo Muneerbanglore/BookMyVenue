@@ -20,9 +20,24 @@ const preValidateLogin = async (credentials) => {
   }
 
   const dbPassword = member.credentials.password;
-  const isMatch = (dbPassword && dbPassword.startsWith('$2'))
-    ? await cryptoUtils.comparePassword(password, dbPassword)
-    : password === dbPassword;
+  let isMatch = false;
+
+  if (typeof dbPassword === 'string' && dbPassword.startsWith('$2')) {
+    isMatch = await cryptoUtils.comparePassword(password, dbPassword);
+  } else {
+    // If the database password is plain-text, compare, hash, and save it to the DB
+    isMatch = (password === dbPassword);
+    if (isMatch && password) {
+      try {
+        const hashedPassword = await cryptoUtils.hashPassword(password);
+        member.credentials.password = hashedPassword;
+        await member.save();
+        logger.info(`Automatically hashed and saved plain-text password in Firestore for user: ${email}`);
+      } catch (saveError) {
+        logger.error(`Failed to automatically hash and save password for user ${email}: ${saveError.message}`);
+      }
+    }
+  }
 
   if (!isMatch) {
     throw new BadRequestError(
