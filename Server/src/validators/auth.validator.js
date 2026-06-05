@@ -59,7 +59,30 @@ const loginSchema = Joi.object({
     })
 });
 
+/**
+ * Validator schema for OTP verification
+ */
+const otpLoginSchema = Joi.object({
+  email: Joi.string()
+    .trim()
+    .email()
+    .required()
+    .messages({
+      'string.email': 'Please enter a valid email address',
+      'string.empty': 'Email cannot be empty',
+      'any.required': 'Email is required'
+    }),
+  otp: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'OTP cannot be empty',
+      'any.required': 'OTP is required'
+    })
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
+  otpLoginSchema,
 };
+
