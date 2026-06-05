@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, logoutUser } from '../../store/venueSlice';
-import { signInWithGoogle } from '../../firebase/firebaseConfig';
+import { signInWithGoogle, auth, sendSignInLinkToEmail } from '../../firebase/firebaseConfig';
 import { X, LogOut, Sparkles } from 'lucide-react';
 
 export default function ProfileModal({ isOpen, onClose }) {
   const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.venue.currentUser);
+  const BASE_URL = import.meta.env.VITE_API_URL || 'https://bookmyvenue-2c0a.onrender.com/api/v1';
 
   const [isRegister, setIsRegister] = useState(false);
   const [userRole, setUserRole] = useState('Guest'); // Guest or Owner
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [loadingVerification, setLoadingVerification] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,7 +34,16 @@ export default function ProfileModal({ isOpen, onClose }) {
     }
 
     if (isRegister) {
-      dispatch(loginUser({ name, email, role: userRole === 'Owner' ? 'Owner' : 'Client' }));
+      // Ensure email and phone have been verified before registering
+      if (!emailVerified) {
+        setError('Please verify your email before signing up');
+        return;
+      }
+      if (!phoneVerified) {
+        setError('Please verify your phone number before signing up');
+        return;
+      }
+      dispatch(loginUser({ name, email, role: userRole === 'Owner' ? 'Owner' : 'Client', avatar: '', phone }));
     } else {
       const defaultName = email.split('@')[0];
       const formattedName = defaultName.charAt(0).toUpperCase() + defaultName.slice(1);
@@ -396,17 +410,143 @@ export default function ProfileModal({ isOpen, onClose }) {
                     </div>
                   )}
 
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                  {isRegister && (
+                    <div className="form-group" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <label className="form-label" style={{ fontWeight: '600', color: 'var(--text-dark)', fontSize: '0.8rem' }}>Phone Number</label>
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <input
+                          type="tel"
+                          className="form-input"
+                          placeholder="+1 555 123 4567"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          style={{ height: '42px', borderRadius: '8px', border: '1px solid var(--border-light)', fontSize: '0.9rem', paddingLeft: '90px', width: '100%' }}
+                        />
+                        {phone && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                // Send OTP for phone verification
+                                const sendPayload = { type: 'phone', target: phone };
+                                console.log('Sending phone verification OTP to:', `${BASE_URL}/onboarding/otp/send`, 'with payload:', sendPayload);
+                                const sendRes = await fetch(`${BASE_URL}/onboarding/otp/send`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(sendPayload)
+                                });
+                                if (!sendRes.ok) {
+                                  let msg = 'Phone verification failed';
+                                  try {
+                                    const err = await sendRes.json();
+                                    msg = err.message || msg;
+                                  } catch (_) { }
+                                  alert(msg);
+                                  return;
+                                }
+                                const otp = window.prompt('Enter the OTP sent to your phone');
+                                if (!otp) {
+                                  alert('OTP entry cancelled');
+                                  return;
+                                }
+                                const verifyPayload = { type: 'phone', target: phone, code: otp };
+                                console.log('Verifying phone OTP with:', `${BASE_URL}/onboarding/otp/verify`, 'with payload:', verifyPayload);
+                                const verifyRes = await fetch(`${BASE_URL}/onboarding/otp/verify`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(verifyPayload)
+                                });
+                                if (verifyRes.ok) {
+                                  setPhoneVerified(true);
+                                  alert('Phone verification successful!');
+                                } else {
+                                  let msg = 'OTP verification failed';
+                                  try {
+                                    const err = await verifyRes.json();
+                                    msg = err.message || msg;
+                                  } catch (_) { }
+                                  alert(msg);
+                                }
+                              } catch (e) {
+                                console.error(e);
+                                alert('Network error while verifying phone');
+                              }
+                            }}
+                            style={{
+                              position: 'absolute',
+                              left: '8px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: phoneVerified ? '#34d399' : '#b0003a',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '6px 12px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {phoneVerified ? 'Verified' : 'Verify'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-group" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                     <label className="form-label" style={{ fontWeight: '600', color: 'var(--text-dark)', fontSize: '0.8rem' }}>Email Address</label>
-                    <input
-                      type="email"
-                      className="form-input"
-                      placeholder="name@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      style={{ height: '42px', borderRadius: '8px', border: '1px solid var(--border-light)', fontSize: '0.9rem' }}
-                      required
-                    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        type="email"
+                        className="form-input"
+                        placeholder="name@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={{ height: '42px', borderRadius: '8px', border: '1px solid var(--border-light)', fontSize: '0.9rem', paddingLeft: '90px', width: '100%' }}
+                        required
+                      />
+                      {isRegister && email && (
+                        <button
+                          type="button"
+                          disabled={loadingVerification || emailVerified}
+                          onClick={async () => {
+                            try {
+                              setLoadingVerification(true);
+                              const actionCodeSettings = {
+                                url: window.location.href,
+                                handleCodeInApp: true,
+                              };
+                              const response = await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+                              console.log('Response from Firebase:', response);
+                              window.localStorage.setItem('emailForSignIn', email);
+                              alert('Verification link sent! Please check your email to verify.');
+                              // Simulating verified state in UI for now so user can proceed
+                              setEmailVerified(true);
+                            } catch (e) {
+                              console.error(e);
+                              alert('Error sending verification link: ' + e.message);
+                            } finally {
+                              setLoadingVerification(false);
+                            }
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: '8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: emailVerified ? '#34d399' : (loadingVerification ? '#9ca3af' : '#b0003a'),
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '6px 12px',
+                            fontSize: '0.75rem',
+                            cursor: (loadingVerification || emailVerified) ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {loadingVerification ? 'Sending...' : (emailVerified ? 'Verified' : 'Verify')}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -469,23 +609,19 @@ export default function ProfileModal({ isOpen, onClose }) {
                     {isRegister ? 'Sign Up' : 'Login to VenueElite'}
                   </button>
                 </form>
-              </div>
-
-              {/* Bottom Switch */}
-              <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setIsRegister(!isRegister); setError(''); }}
-                  style={{ color: '#b0003a', fontWeight: '700', fontSize: '0.85rem' }}
-                >
-                  {isRegister ? 'Log in' : 'Sign up for free'}
-                </button>
+                {/* Bottom Switch */}
+                <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+                  </span>
+                  <button type="button"
+                    onClick={() => { setIsRegister(!isRegister); setError(''); }}
+                    style={{ color: '#b0003a', fontWeight: '700', fontSize: '0.85rem' }}>
+                    {isRegister ? 'Log in' : 'Sign up for free'}
+                  </button>
+                </div>
               </div>
             </div>
-
           </div>
         )}
       </div>

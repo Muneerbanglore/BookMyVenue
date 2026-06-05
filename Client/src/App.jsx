@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { loginUser } from './store/venueSlice';
+import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { auth } from './firebase/firebaseConfig';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import CuratedExperiences from './components/CuratedExperiences';
@@ -16,6 +19,51 @@ import BookVenueModal from './components/Modals/BookVenueModal';
 
 export default function App() {
   const dispatch = useDispatch();
+
+  // Handle Firebase Email Link Sign-In
+  useEffect(() => {
+    const handleEmailLink = async () => {
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        let email = window.localStorage.getItem('emailForSignIn');
+        
+        // If email is missing from localStorage (e.g., opened link on a different device)
+        if (!email) {
+          email = window.prompt('Please provide your email for confirmation');
+        }
+
+        if (email) {
+          try {
+            // Complete sign-in
+            const result = await signInWithEmailLink(auth, email, window.location.href);
+            console.log('Firebase Sign-In Success Data:', result);
+            window.localStorage.removeItem('emailForSignIn');
+
+            // Format a default name from the email
+            const defaultName = email.split('@')[0];
+            const formattedName = defaultName.charAt(0).toUpperCase() + defaultName.slice(1);
+
+            // Log the user into our app's Redux state
+            dispatch(loginUser({
+              name: result.user.displayName || formattedName,
+              email: result.user.email,
+              role: 'Client', // Default role
+              avatar: result.user.photoURL || ''
+            }));
+
+            // Clean the URL so it doesn't trigger again on refresh
+            window.history.replaceState(null, '', window.location.pathname);
+
+            alert('Successfully verified email and signed in!');
+          } catch (error) {
+            console.error('Error signing in with email link:', error);
+            alert('Error verifying email link: ' + error.message);
+          }
+        }
+      }
+    };
+    
+    handleEmailLink();
+  }, [dispatch]);
 
   // Local state for toggling modals
   const [isProfileOpen, setIsProfileOpen] = useState(false);
