@@ -3,10 +3,10 @@ import { useSelector } from 'react-redux';
 import { Bell, User, Sparkles } from 'lucide-react';
 import NotificationDropdown from './Modals/NotificationDropdown';
 
-export default function Header({ 
-  onListVenueClick, 
-  onBookingsClick, 
-  onFavoritesClick, 
+export default function Header({
+  onListVenueClick,
+  onBookingsClick,
+  onFavoritesClick,
   onProfileClick,
   activeSection,
   setActiveSection
@@ -14,7 +14,7 @@ export default function Header({
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const notifications = useSelector((state) => state.venue.notifications);
   const currentUser = useSelector((state) => state.venue.currentUser);
-  
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
@@ -24,6 +24,7 @@ export default function Header({
       background: '#ffffff',
       borderBottom: '1px solid var(--border-light)',
       zIndex: 100,
+      width: '100%',
       height: '80px',
       display: 'flex',
       alignItems: 'center'
@@ -106,7 +107,7 @@ export default function Header({
 
         {/* Actions panel */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <button 
+          <button
             onClick={onListVenueClick}
             style={{
               background: 'var(--accent-gold)',
@@ -128,7 +129,7 @@ export default function Header({
 
           {/* Bell Icon Notification */}
           <div style={{ position: 'relative' }}>
-            <button 
+            <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               style={{
                 color: 'var(--text-dark)',
@@ -157,12 +158,12 @@ export default function Header({
                 border: '2px solid #ffffff'
               }} />
             )}
-            
+
             <NotificationDropdown isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
           </div>
 
           {/* User Profile */}
-          <button 
+          <button
             onClick={onProfileClick}
             style={{
               display: 'flex',

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { toggleFavorite, clearSearch } from '../store/venueSlice';
+import { toggleFavorite, clearSearch } from '../../store/venueSlice';
 import { MapPin, Users, Heart, Star, ChevronRight, RefreshCw } from 'lucide-react';
 
 export default function CuratedExperiences({ onBookClick }) {

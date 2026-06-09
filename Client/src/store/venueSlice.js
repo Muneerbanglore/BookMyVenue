@@ -1,5 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+const getSavedUser = () => {
+  try {
+    const saved = localStorage.getItem('currentUser')
+    return saved ? JSON.parse(saved) : null
+  } catch {
+    return null
+  }
+}
+
 const DEFAULT_VENUES = [
   {
     id: 'crystal-waterfront',
@@ -83,7 +92,7 @@ const initialState = {
     eventType: 'Wedding'
   },
   searchResults: null, // null means show all, empty array means no matches
-  currentUser: null,
+  currentUser: getSavedUser(),
   notifications: [
     {
       id: 'n1',
@@ -204,14 +213,17 @@ export const venueSlice = createSlice({
       state.notifications = state.notifications.map(n => ({ ...n, read: true }));
     },
     loginUser: (state, action) => {
-      const { name = 'User', email, role = 'Client', avatar } = action.payload;
+      const { id, name = 'User', email, role = 'Client', avatar, accessToken, refreshToken } = action.payload;
       state.currentUser = {
-        id: 'u_' + Date.now(),
+        id: id || 'u_' + Date.now(),
         name,
         email,
         role,
-        avatar: avatar || (name.split(' ').map(n => n[0]).join('').toUpperCase())
+        avatar: avatar || (name.split(' ').map(n => n[0]).join('').toUpperCase()),
+        accessToken,
+        refreshToken
       };
+      localStorage.setItem('currentUser', JSON.stringify(state.currentUser))
       state.notifications.unshift({
         id: 'n_' + Date.now(),
         message: `Welcome back, ${state.currentUser.name}!`,
@@ -229,6 +241,7 @@ export const venueSlice = createSlice({
         time: 'Just now',
         read: false
       });
+      localStorage.removeItem('currentUser')
     }
   }
 });

@@ -3,19 +3,19 @@ import { useSelector, useDispatch } from 'react-redux';
 import { loginUser } from './store/venueSlice';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from './firebase/firebaseConfig';
-import Header from './components/Header';
-import Hero from './components/Hero';
-import CuratedExperiences from './components/CuratedExperiences';
-import OurPromise from './components/OurPromise';
-import OwnCelebration from './components/OwnCelebration';
-import Footer from './components/Footer';
+import { Toaster } from 'react-hot-toast';
 
-// Import Modals
-import ProfileModal from './components/Modals/ProfileModal';
-import ListVenueModal from './components/Modals/ListVenueModal';
-import BookingsModal from './components/Modals/BookingsModal';
-import FavoritesModal from './components/Modals/FavoritesModal';
-import BookVenueModal from './components/Modals/BookVenueModal';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import Home from './pages/Home';
+import ProfilePage from './pages/ProfilePage';
+
+// Import Modals from Features
+import ProfileModal from './features/auth/ProfileModal';
+// import ListVenueModal from './features/venues/ListVenueModal';
+// import BookingsModal from './features/bookings/BookingsModal';
+// import FavoritesModal from './features/bookings/FavoritesModal';
+// import BookVenueModal from './features/venues/BookVenueModal';
 
 export default function App() {
   const dispatch = useDispatch();
@@ -25,52 +25,41 @@ export default function App() {
     const handleEmailLink = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
         let email = window.localStorage.getItem('emailForSignIn');
-        
-        // If email is missing from localStorage (e.g., opened link on a different device)
         if (!email) {
           email = window.prompt('Please provide your email for confirmation');
         }
-
         if (email) {
           try {
-            // Complete sign-in
             const result = await signInWithEmailLink(auth, email, window.location.href);
-            console.log('Firebase Sign-In Success Data:', result);
             window.localStorage.removeItem('emailForSignIn');
-
-            // Format a default name from the email
             const defaultName = email.split('@')[0];
             const formattedName = defaultName.charAt(0).toUpperCase() + defaultName.slice(1);
-
-            // Log the user into our app's Redux state
             dispatch(loginUser({
               name: result.user.displayName || formattedName,
               email: result.user.email,
-              role: 'Client', // Default role
+              role: 'Client',
               avatar: result.user.photoURL || ''
             }));
-
-            // Clean the URL so it doesn't trigger again on refresh
             window.history.replaceState(null, '', window.location.pathname);
-
-            alert('Successfully verified email and signed in!');
+            // Replaced alert with nothing since auth logic moved
           } catch (error) {
             console.error('Error signing in with email link:', error);
-            alert('Error verifying email link: ' + error.message);
           }
         }
       }
     };
-    
     handleEmailLink();
   }, [dispatch]);
 
   // Local state for toggling modals
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showProfilePage, setShowProfilePage] = useState(false);
   const [isListVenueOpen, setIsListVenueOpen] = useState(false);
   const [isBookingsOpen, setIsBookingsOpen] = useState(false);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [isBookVenueOpen, setIsBookVenueOpen] = useState(false);
+
+  const currentUser = useSelector((state) => state.venue.currentUser);
 
   // State to pass which venue the user clicked "Book Now" on
   const [selectedVenue, setSelectedVenue] = useState(null);
@@ -93,6 +82,7 @@ export default function App() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Toaster position="top-right" />
 
       {/* Toast Alert Notification Banner */}
       {latestNotification && !latestNotification.read && (
@@ -125,18 +115,29 @@ export default function App() {
         onListVenueClick={handleListVenueClick}
         onBookingsClick={() => setIsBookingsOpen(true)}
         onFavoritesClick={() => setIsFavoritesOpen(true)}
-        onProfileClick={() => setIsProfileOpen(true)}
+        onProfileClick={() => {
+          if (currentUser) {
+            setShowProfilePage(true);
+          } else {
+            setIsProfileOpen(true);
+          }
+        }}
         activeSection={activeSection}
-        setActiveSection={setActiveSection}
+        setActiveSection={(section) => {
+          setShowProfilePage(false);
+          setActiveSection(section);
+        }}
       />
 
-      {/* Main Sections */}
-      <main style={{ flex: '1 0 auto' }}>
-        <Hero />
-        <CuratedExperiences onBookClick={handleBookClick} />
-        <OurPromise />
-        <OwnCelebration onListVenueClick={handleListVenueClick} />
-      </main>
+      {/* Main Content */}
+      {showProfilePage && currentUser ? (
+        <ProfilePage onBack={() => setShowProfilePage(false)} />
+      ) : (
+        <Home
+          handleBookClick={handleBookClick}
+          handleListVenueClick={handleListVenueClick}
+        />
+      )}
 
       {/* Footer */}
       <Footer
@@ -151,7 +152,7 @@ export default function App() {
         onClose={() => setIsProfileOpen(false)}
       />
 
-      <ListVenueModal
+      {/* <ListVenueModal
         isOpen={isListVenueOpen}
         onClose={() => setIsListVenueOpen(false)}
       />
@@ -171,7 +172,7 @@ export default function App() {
         isOpen={isBookVenueOpen}
         onClose={() => setIsBookVenueOpen(false)}
         venue={selectedVenue}
-      />
+      /> */}
 
     </div>
   );
