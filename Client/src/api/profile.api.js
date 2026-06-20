@@ -47,6 +47,7 @@ const fetchWithAuth = async (url, options = {}) => {
 };
 
 export const getUserProfile = async (token) => {
+    console.log("token",token);
     return await fetchWithAuth(`${BASE_URL}/users/profile`, {
         method: 'GET',
         headers: { 

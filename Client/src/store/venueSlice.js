@@ -108,7 +108,18 @@ const initialState = {
       time: '2 hours ago',
       read: true
     }
-  ]
+  ],
+  // ── Maps & Location State ──
+  // The place the user selected from the autocomplete dropdown
+  selectedPlace: null,        // { placeId, description, mainText, secondaryText }
+  // The lat/lng coordinates of the selected place (or geolocation)
+  selectedCoordinates: null,  // { lat: number, lng: number }
+  // Venues fetched from the backend sorted by proximity
+  nearbyVenues: [],
+  // True while fetching place details or nearby venues
+  locationLoading: false,
+  // Holds an error message string if something went wrong
+  locationError: null
 };
 
 export const venueSlice = createSlice({
@@ -242,6 +253,36 @@ export const venueSlice = createSlice({
         read: false
       });
       localStorage.removeItem('currentUser')
+    },
+
+    // ── Maps Reducers ──
+
+    // Called when user picks a suggestion from the autocomplete dropdown
+    setSelectedPlace: (state, action) => {
+      state.selectedPlace = action.payload;
+      // { placeId, description, mainText, secondaryText }
+    },
+
+    // Called after place details API returns lat/lng,
+    // OR after browser geolocation succeeds
+    setSelectedCoordinates: (state, action) => {
+      state.selectedCoordinates = action.payload;
+      // { lat: number, lng: number }
+    },
+
+    // Called when nearby venues are fetched from your backend
+    setNearbyVenues: (state, action) => {
+      state.nearbyVenues = action.payload; // array of venue objects
+    },
+
+    // Toggle while any location/map API call is in progress
+    setLocationLoading: (state, action) => {
+      state.locationLoading = action.payload; // true or false
+    },
+
+    // Store an error message if location or maps fetch fails
+    setLocationError: (state, action) => {
+      state.locationError = action.payload; // string or null
     }
   }
 });
@@ -256,7 +297,13 @@ export const {
   addNotification,
   markAllNotificationsAsRead,
   loginUser,
-  logoutUser
+  logoutUser,
+  // Maps actions
+  setSelectedPlace,
+  setSelectedCoordinates,
+  setNearbyVenues,
+  setLocationLoading,
+  setLocationError
 } = venueSlice.actions;
 
 export default venueSlice.reducer;

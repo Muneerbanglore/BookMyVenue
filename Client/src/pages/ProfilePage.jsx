@@ -5,6 +5,8 @@ import { MapPin, Pencil, Share2, Clock, CalendarPlus, Navigation, Bell, Heart, S
 import s from './ProfilePage.styles';
 import * as profileApi from '../api/profile.api';
 import toast from 'react-hot-toast';
+import MapViewer from '../components/common/MapViewer';
+import ProfileCompleteDialog from '../components/common/ProfileCompleteDialog';
 
 const DUMMY_BOOKINGS = [
   {
@@ -67,11 +69,26 @@ export default function ProfilePage({ onBack }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
 
+  // Determine if the logged-in user is a Venue Owner
+  const isOwner = currentUser?.role === 'VENUE_OWNER' || currentUser?.role === 'Owner';
+
+  // Show completion dialog when Owner logs in and hasn't completed their profile yet
+  // profileData is null until it loads — if it stays null, profile is incomplete
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+
+  // After profileData loads, show dialog if owner and profile looks incomplete
+  useEffect(() => {
+    if (isOwner && profileData !== null && !profileData?.businessName) {
+      setShowCompleteDialog(true);
+    }
+  }, [isOwner, profileData]);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         if (!currentUser?.accessToken) return;
         const res = await profileApi.getUserProfile(currentUser.accessToken);
+        console.log('Profile response:', res);
         const data = res.data?.user || res.user || res.data || {};
         setProfileData(data);
         setEditName(data.name || currentUser.name);
@@ -114,6 +131,34 @@ export default function ProfilePage({ onBack }) {
   return (
     <div style={s.pageContainer}>
 
+      {/* Profile Completion Dialog — shown to Venue Owners with incomplete profiles */}
+      {showCompleteDialog && (
+        <ProfileCompleteDialog
+          onClose={() => setShowCompleteDialog(false)}
+          onComplete={async (formData) => {
+            try {
+              // Call the update profile API with the collected data
+              await profileApi.updateUserProfile(currentUser.accessToken, {
+                name: formData.businessName,
+                location: formData.placeDetails ? {
+                  coordinates: {
+                    latitude: formData.placeDetails.lat,
+                    longitude: formData.placeDetails.lng,
+                  },
+                  metadata: {
+                    city: formData.location,
+                  }
+                } : undefined
+              });
+              setShowCompleteDialog(false);
+              toast.success('Profile completed successfully!');
+            } catch (err) {
+              toast.error('Failed to save profile. Please try again.');
+            }
+          }}
+        />
+      )}
+
       {/* ─── Profile Header ─── */}
       <div style={s.headerSection}>
         <div style={s.headerCard}>
@@ -130,10 +175,10 @@ export default function ProfilePage({ onBack }) {
             <div>
               {isEditing ? (
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <input 
-                    value={editName} 
-                    onChange={(e) => setEditName(e.target.value)} 
-                    style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '1rem', fontFamily: 'var(--font-heading)' }} 
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '1rem', fontFamily: 'var(--font-heading)' }}
                   />
                   <button onClick={handleSaveProfile} style={{ background: '#b0003a', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 12px', cursor: 'pointer', fontWeight: 'bold' }}>Save</button>
                   <button onClick={() => setIsEditing(false)} style={{ background: '#f1f5f9', color: '#1a1a2e', border: 'none', borderRadius: '4px', padding: '4px 12px', cursor: 'pointer' }}>Cancel</button>
@@ -228,20 +273,16 @@ export default function ProfilePage({ onBack }) {
               {/* Venue Name + Map */}
               <div style={s.venueMapRow}>
                 <h3 style={s.detailVenueName}>{selectedBooking.venue}</h3>
+                {/* Real Google Map — centers on booking coordinates if available */}
                 <div style={s.mapContainer}>
-                  <div style={s.mapPlaceholder}>
-                    <div style={s.mapDot('20px', '30px', undefined, undefined, '6px', '#b0003a')} />
-                    <div style={s.mapDot('40px', undefined, '50px', undefined, '6px', '#b0003a')} />
-                    <div style={s.mapDot(undefined, '70px', undefined, '45px', '8px', '#d4a574')} />
-                    <div style={s.mapGridOverlay}>
-                      {[...Array(5)].map((_, i) => (
-                        <div key={`h-${i}`} style={{ position: 'absolute', top: `${(i + 1) * 20}%`, left: 0, right: 0, height: '1px', background: '#ffffff' }} />
-                      ))}
-                      {[...Array(5)].map((_, i) => (
-                        <div key={`v-${i}`} style={{ position: 'absolute', left: `${(i + 1) * 20}%`, top: 0, bottom: 0, width: '1px', background: '#ffffff' }} />
-                      ))}
-                    </div>
-                  </div>
+                  <MapViewer
+                    coordinates={
+                      selectedBooking.lat && selectedBooking.lng
+                        ? { lat: selectedBooking.lat, lng: selectedBooking.lng }
+                        : null
+                    }
+                    zoom={14}
+                  />
                   <button style={s.getDirectionsBtn}>
                     <Navigation size={12} /> Get Directions
                   </button>

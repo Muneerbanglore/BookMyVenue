@@ -9,6 +9,9 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import ProfilePage from './pages/ProfilePage';
+import OwnerDashboard from './pages/owner/OwnerDashboard';
+import OwnerProfilePage from './pages/owner/OwnerProfilePage';
+import OwnerSidebar from './components/OwnerSidebar';
 
 // Import Modals from Features
 import ProfileModal from './features/auth/ProfileModal';
@@ -58,8 +61,19 @@ export default function App() {
   const [isBookingsOpen, setIsBookingsOpen] = useState(false);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [isBookVenueOpen, setIsBookVenueOpen] = useState(false);
+  const [ownerActiveNav, setOwnerActiveNav] = useState(() => {
+    return localStorage.getItem('ownerActiveNav') || 'overview';
+  });
+
+  const changeOwnerNav = (key) => {
+    setOwnerActiveNav(key);
+    localStorage.setItem('ownerActiveNav', key);
+  };
 
   const currentUser = useSelector((state) => state.venue.currentUser);
+
+  // Determine role — backend returns 'USER' or 'VENUE_OWNER'
+  const isOwner = currentUser?.role === 'VENUE_OWNER' || currentUser?.role === 'Owner';
 
   // State to pass which venue the user clicked "Book Now" on
   const [selectedVenue, setSelectedVenue] = useState(null);
@@ -80,6 +94,27 @@ export default function App() {
     setIsListVenueOpen(true);
   };
 
+  // ── Any logged-in user sees the Dashboard ──
+  // Both USER and VENUE_OWNER roles are redirected here.
+  if (currentUser) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-body)' }}>
+        <Toaster position="top-right" />
+        <OwnerSidebar
+          activeNav={ownerActiveNav}
+          onNavChange={changeOwnerNav}
+          onProfileClick={() => changeOwnerNav('profile')}
+        />
+        {ownerActiveNav === 'profile' ? (
+          <OwnerProfilePage onBack={() => changeOwnerNav('overview')} />
+        ) : (
+          <OwnerDashboard activeNav={ownerActiveNav} setActiveNav={changeOwnerNav} />
+        )}
+      </div>
+    );
+  }
+
+  // ── Standard User layout ─────────────────────────────────────
   return (
     <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Toaster position="top-right" />
@@ -151,28 +186,6 @@ export default function App() {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
       />
-
-      {/* <ListVenueModal
-        isOpen={isListVenueOpen}
-        onClose={() => setIsListVenueOpen(false)}
-      />
-
-      <BookingsModal
-        isOpen={isBookingsOpen}
-        onClose={() => setIsBookingsOpen(false)}
-      />
-
-      <FavoritesModal
-        isOpen={isFavoritesOpen}
-        onClose={() => setIsFavoritesOpen(false)}
-        onBookClick={handleBookClick}
-      />
-
-      <BookVenueModal
-        isOpen={isBookVenueOpen}
-        onClose={() => setIsBookVenueOpen(false)}
-        venue={selectedVenue}
-      /> */}
 
     </div>
   );

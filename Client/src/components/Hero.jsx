@@ -1,7 +1,8 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSearchFilters, triggerSearch } from '../store/venueSlice';
-import { MapPin, Calendar, Sparkles, Search } from 'lucide-react';
+import { Calendar, Sparkles, Search } from 'lucide-react';
+import LocationSearch from './common/LocationSearch';
 
 export default function Hero() {
   const dispatch = useDispatch();
@@ -22,11 +23,18 @@ export default function Hero() {
   const handleSearch = (e) => {
     e.preventDefault();
     dispatch(triggerSearch());
-    // Scroll down to the experiences section
     const element = document.getElementById('curated-experiences');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  // Called when user selects a place from the LocationSearch dropdown
+  // coords = { lat, lng } — already saved to Redux by LocationSearch internally
+  const handlePlaceSelected = ({ coords }) => {
+    dispatch(triggerSearch());
+    const element = document.getElementById('curated-experiences');
+    if (element) element.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -55,7 +63,7 @@ export default function Hero() {
           color: '#ffffff',
           marginBottom: '16px'
         }}>
-          Find the Perfect Space for Your<br/>Next Extraordinary Event
+          Find the Perfect Space for Your<br />Next Extraordinary Event
         </h1>
         <p style={{
           fontFamily: 'var(--font-body)',
@@ -71,7 +79,7 @@ export default function Hero() {
       </div>
 
       {/* Capsule Search Bar Overlay */}
-      <form 
+      <form
         onSubmit={handleSearch}
         style={{
           background: 'rgba(255, 255, 255, 0.85)',
@@ -94,26 +102,23 @@ export default function Hero() {
           zIndex: 10
         }}
       >
-        {/* Column 1: Location */}
+        {/* Column 1: Location — uses Google Places Autocomplete */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-          <MapPin size={22} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, textAlign: 'left' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Location</span>
-            <input 
-              type="text" 
-              placeholder="Where are you going" 
-              value={filters.location}
-              onChange={handleLocationChange}
-              style={{
-                background: 'transparent',
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: '4px' }}>Location</span>
+            {/* LocationSearch replaces the plain input.
+                - Debounces 300ms, calls /maps/places/autocomplete
+                - On selection, fetches /maps/places/details for lat/lng
+                - Saves selectedPlace + selectedCoordinates to Redux */}
+            <LocationSearch
+              placeholder="Where are you going"
+              onPlaceSelected={handlePlaceSelected}
+              inputStyle={{
                 border: 'none',
-                outline: 'none',
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.95rem',
-                color: 'var(--text-dark)',
-                width: '100%',
-                fontWeight: '500',
-                marginTop: '2px'
+                padding: '0',
+                boxShadow: 'none',
+                borderRadius: 0,
+                background: 'transparent'
               }}
             />
           </div>
@@ -126,8 +131,8 @@ export default function Hero() {
           <Calendar size={22} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, textAlign: 'left' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Date</span>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={filters.date}
               onChange={handleDateChange}
               style={{
@@ -153,7 +158,7 @@ export default function Hero() {
           <Sparkles size={22} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, textAlign: 'left' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Event Type</span>
-            <select 
+            <select
               value={filters.eventType}
               onChange={handleTypeChange}
               style={{
@@ -179,7 +184,7 @@ export default function Hero() {
         </div>
 
         {/* Search Button */}
-        <button 
+        <button
           type="submit"
           style={{
             background: 'var(--primary-dark)',
