@@ -114,8 +114,8 @@ const verifyOtpLogin = async (email, otp) => {
     );
   }
 
-  // Generate session tokens (member_id 1 = VENUE_OWNER, 2 = USER)
-  const tokenPayload = { id: member.id, role: member.member_id === 1 ? 'VENUE_OWNER' : 'USER' };
+  // Generate session tokens (member_id 1 or 3 = VENUE_OWNER, 2 = USER)
+  const tokenPayload = { id: member.id, role: (member.member_id === 1 || member.member_id === 3) ? 'VENUE_OWNER' : 'USER' };
   const accessToken = cryptoUtils.generateToken(tokenPayload);
   const refreshToken = cryptoUtils.generateRefreshToken(tokenPayload);
 
@@ -134,7 +134,7 @@ const verifyOtpLogin = async (email, otp) => {
       id: member.id,
       name: member.identifier,
       email: member.email_id,
-      role: member.member_id === 3 ? 'VENUE_OWNER' : 'USER',
+      role: (member.member_id === 1 || member.member_id === 3) ? 'VENUE_OWNER' : 'USER',
     },
     accessToken,
     refreshToken,

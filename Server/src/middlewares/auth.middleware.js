@@ -35,7 +35,7 @@ const protect = async (req, res, next) => {
         }
         let query = db.collection('members');
         if (token === 'dev-token-owner') {
-          query = query.where('member_id', '==', 1);
+          query = query.where('member_id', 'in', [1, 3]);
         } else if (token === 'dev-token-user') {
           query = query.where('member_id', '==', 2);
         }
@@ -67,8 +67,8 @@ const protect = async (req, res, next) => {
 
     let profile = null;
 
-    // member_id === 1 is VENUE_OWNER, member_id === 2 is USER
-    if (member.member_id === 1) {
+    // member_id === 1 or 3 is VENUE_OWNER, member_id === 2 is USER
+    if (member.member_id === 1 || member.member_id === 3) {
       profile = await VenueOwner.findById(decoded.id);
       if (!profile) {
         // Initialize skeleton VenueOwner profile (not saved in DB yet)
