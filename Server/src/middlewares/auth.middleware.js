@@ -22,8 +22,40 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // Verify token
-    const decoded = cryptoUtils.verifyToken(token);
+    let decoded;
+
+    // Support hardcoded development tokens for ease of testing in development mode
+    if (process.env.NODE_ENV === 'development' && (token === 'development-token' || token === 'dev-token-owner' || token === 'dev-token-user' || token.startsWith('dev-member-'))) {
+      if (token.startsWith('dev-member-')) {
+        decoded = { id: token.replace('dev-member-', '') };
+      } else {
+        const db = require('../config/firebase');
+        if (!db) {
+          throw new Error('Firestore not initialized for dev token resolution.');
+        }
+        let query = db.collection('members');
+        if (token === 'dev-token-owner') {
+          query = query.where('member_id', '==', 1);
+        } else if (token === 'dev-token-user') {
+          query = query.where('member_id', '==', 2);
+        }
+        const snapshot = await query.limit(1).get();
+        if (!snapshot.empty) {
+          decoded = { id: snapshot.docs[0].id };
+        } else {
+          // Fallback to any member
+          const fallbackSnapshot = await db.collection('members').limit(1).get();
+          if (!fallbackSnapshot.empty) {
+            decoded = { id: fallbackSnapshot.docs[0].id };
+          } else {
+            decoded = { id: 'dev-mock-member-id' };
+          }
+        }
+      }
+    } else {
+      // Verify token signature normally
+      decoded = cryptoUtils.verifyToken(token);
+    }
 
     // Look up the core member credentials document
     const member = await Member.findById(decoded.id);
