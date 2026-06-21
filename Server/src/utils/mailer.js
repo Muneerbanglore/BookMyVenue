@@ -31,14 +31,7 @@ if (isSmtpConfigured()) {
   logger.warn('SMTP settings are not fully configured. Using fallback Console Mailer.');
 }
 
-/**
- * Send an email
- * @param {Object} options
- * @param {string} options.to
- * @param {string} options.subject
- * @param {string} options.html
- * @returns {Promise<boolean>}
- */
+
 const sendEmail = async ({ to, subject, html }) => {
   if (!transporter) {
     logger.info(`[Fallback Mailer] Sending email to: ${to} | Subject: ${subject}`);

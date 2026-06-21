@@ -1,50 +1,119 @@
 const { Worker } = require('worker_threads');
 const path = require('path');
 const User = require('../schemas/user.schema');
+const Member = require('../schemas/member.schema');
+const { encodeGeohash } = require('../utils/geohash');
+const cryptoUtils = require('../utils/crypto');
 const { NotFoundError, AppError } = require('../utils/errors');
 const ErrorCodes = require('../constants/errorCodes');
 const logger = require('../config/logger');
 
 /**
- * Retrieve user profile by MongoDB ObjectId
- * @param {string} id - User ID
+ * Retrieve user profile and merge with member credentials
+ * @param {string} id - User/Member ID
  */
 const getUserById = async (id) => {
-  const user = await User.findById(id);
-  if (!user) {
-    throw new NotFoundError('User profile not found.', ErrorCodes.USER_NOT_FOUND);
+  const member = await Member.findById(id);
+  if (!member) {
+    throw new NotFoundError('Member account not found.', ErrorCodes.USER_NOT_FOUND);
   }
-  return user;
+
+  let user = await User.findById(id);
+  if (!user) {
+    // Return skeleton profile populated from Member
+    user = new User({
+      _id: id,
+      first_name: '',
+      last_name: '',
+      profile_image: '',
+      role_id: 2
+    });
+  }
+
+  return {
+    id: user.id,
+    email: member.email_id,
+    phone_number: member.phone_number ? `+${member.phone_number}` : '',
+    first_name: user.first_name,
+    last_name: user.last_name,
+    profile_image: user.profile_image,
+    role_id: user.role_id,
+    dob: user.dob,
+    gender: user.gender,
+    location: user.location,
+    preferences: user.preferences,
+    createdAt: user.createdAt || member.createdAt,
+    updatedAt: user.updatedAt || member.updatedAt
+  };
 };
 
 /**
- * Update user details (e.g. name, email, password)
- * @param {string} id - User ID
+ * Update user details and synchronize with member record
+ * @param {string} id - User/Member ID
  * @param {Object} updateData - Key-values to update
  */
 const updateUserProfile = async (id, updateData) => {
-  const user = await User.findById(id);
-  if (!user) {
-    throw new NotFoundError('User profile not found.', ErrorCodes.USER_NOT_FOUND);
+  const member = await Member.findById(id);
+  if (!member) {
+    throw new NotFoundError('Member account not found.', ErrorCodes.USER_NOT_FOUND);
   }
 
-  // Apply changes
-  if (updateData.name) user.name = updateData.name;
-  if (updateData.email) user.email = updateData.email;
-  if (updateData.password) user.password = updateData.password; // Triggers password hash pre-save hook
-  if (updateData.location) user.location = updateData.location;
-  if (updateData.preferences) user.preferences = updateData.preferences;
+  let user = await User.findById(id);
+  if (!user) {
+    user = new User({ _id: id });
+  }
 
+  // Update properties if provided
+  if (updateData.firstName !== undefined) user.first_name = updateData.firstName;
+  if (updateData.lastName !== undefined) user.last_name = updateData.lastName;
+  if (updateData.dob !== undefined) user.dob = updateData.dob;
+  if (updateData.gender !== undefined) user.gender = updateData.gender;
+  if (updateData.preferences !== undefined) {
+    user.preferences = {
+      ...user.preferences,
+      ...updateData.preferences
+    };
+  }
+
+  // Update location and handle geohashing if coordinates provided
+  if (updateData.location !== undefined) {
+    user.location = {
+      ...user.location,
+      ...updateData.location
+    };
+
+    if (updateData.location.coordinates) {
+      const { latitude, longitude } = updateData.location.coordinates;
+      user.location.geohash = encodeGeohash(latitude, longitude, 9);
+    }
+  }
+
+  // Handle password update if provided
+  if (updateData.password) {
+    const hashedPassword = await cryptoUtils.hashPassword(updateData.password);
+    member.credentials.password = hashedPassword;
+  }
+
+  // Sync name details with member identifier
+  if (updateData.firstName !== undefined || updateData.lastName !== undefined) {
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    const identifier = `${firstName}_${lastName}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/^_+|_+$/g, ''); // Trim leading/trailing underscores
+    
+    if (identifier) {
+      member.identifier = identifier;
+    }
+  }
+
+  // Save changes to Firestore
   await user.save();
+  await member.save();
 
-  return {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    location: user.location,
-    preferences: user.preferences
-  };
+  // Return the unified profile
+  return getUserById(id);
 };
 
 /**
@@ -93,5 +162,5 @@ const runHeavyCalculation = (iterations) => {
 module.exports = {
   getUserById,
   updateUserProfile,
-  runHeavyCalculation,
+  runHeavyCalculation
 };

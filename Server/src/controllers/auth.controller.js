@@ -6,11 +6,6 @@ const redis = require('../config/queue');
 const cryptoUtils = require('../utils/crypto');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 
-/**
- * @desc    Pre-validate credentials and dispatch OTP
- * @route   POST /api/v1/auth/prevalidation
- * @access  Public
- */
 const login = asyncHandler(async (req, res) => {
   const result = await authService.preValidateLogin(req.body);
   res

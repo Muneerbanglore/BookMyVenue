@@ -1,6 +1,8 @@
 const { UnauthorizedError, ForbiddenError, NotFoundError } = require('../utils/errors');
 const cryptoUtils = require('../utils/crypto');
 const User = require('../schemas/user.schema');
+const Member = require('../schemas/member.schema');
+const VenueOwner = require('../schemas/venue_owner.schema');
 const ErrorCodes = require('../constants/errorCodes');
 
 /**
@@ -23,15 +25,44 @@ const protect = async (req, res, next) => {
     // Verify token
     const decoded = cryptoUtils.verifyToken(token);
 
-    // Hydrate user and attach to request object
-    const user = await User.findById(decoded.id);
-    if (!user) {
+    // Look up the core member credentials document
+    const member = await Member.findById(decoded.id);
+    if (!member) {
       return next(
         new NotFoundError('The user associated with this token does not exist', ErrorCodes.USER_NOT_FOUND)
       );
     }
 
-    req.user = user;
+    let profile = null;
+
+    // member_id === 1 is VENUE_OWNER, member_id === 2 is USER
+    if (member.member_id === 1) {
+      profile = await VenueOwner.findById(decoded.id);
+      if (!profile) {
+        // Initialize skeleton VenueOwner profile (not saved in DB yet)
+        profile = new VenueOwner({
+          _id: decoded.id,
+          venue_name: member.identifier,
+          role_id: 3
+        });
+      }
+      profile.role = 'VENUE_OWNER'; // Add role flag for authorize middleware check
+    } else {
+      profile = await User.findById(decoded.id);
+      if (!profile) {
+        // Initialize skeleton User profile (not saved in DB yet)
+        profile = new User({
+          _id: decoded.id,
+          name: member.identifier,
+          role: 'user',
+          role_id: 2
+        });
+      }
+      profile.role = 'USER'; // Normalize user role flag
+    }
+
+    // Attach profile object (with credentials email and phone attached)
+    req.user = profile;
     next();
   } catch (error) {
     next(error); // Handled by standard error handler middleware
