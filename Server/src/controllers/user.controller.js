@@ -57,14 +57,20 @@ const uploadProfileImages = asyncHandler(async (req, res) => {
   const bucket = admin.storage().bucket(storageBucket);
   const storageFile = bucket.file(destPath);
 
+  const crypto = require('crypto');
+  const downloadToken = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+
   await storageFile.save(file.buffer, {
     metadata: {
       contentType: file.mimetype,
+      metadata: {
+        firebaseStorageDownloadTokens: downloadToken,
+      },
     },
     resumable: false,
   });
 
-  const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destPath)}?alt=media`;
+  const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destPath)}?alt=media&token=${downloadToken}`;
 
   // Update URL in users collection
   const User = require('../schemas/user.schema');

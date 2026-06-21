@@ -84,14 +84,20 @@ const uploadVenueImages = asyncHandler(async (req, res) => {
     const destPath = `venues/${req.user.id}/${section}/${fileName}`;
 
     const storageFile = bucket.file(destPath);
+    const crypto = require('crypto');
+    const downloadToken = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+
     await storageFile.save(file.buffer, {
       metadata: {
         contentType: file.mimetype,
+        metadata: {
+          firebaseStorageDownloadTokens: downloadToken,
+        },
       },
       resumable: false,
     });
 
-    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destPath)}?alt=media`;
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destPath)}?alt=media&token=${downloadToken}`;
     uploadedUrls.push(publicUrl);
   }
 
