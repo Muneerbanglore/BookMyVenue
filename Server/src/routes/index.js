@@ -6,6 +6,7 @@ const masterRoutes = require('./master.routes');
 const onboardingRoutes = require('./onboarding.routes');
 const mapsRoutes = require('./maps.routes');
 const venueOwnerRoutes = require('./venue-owner.routes');
+const venueRoutes = require('./venue.routes');
 
 // Health Check endpoint
 router.get('/health', (req, res) => {
@@ -23,5 +24,6 @@ router.use('/master', masterRoutes);
 router.use('/onboarding', onboardingRoutes);
 router.use('/maps', mapsRoutes);
 router.use('/venue-owners', venueOwnerRoutes);
+router.use('/venues', venueRoutes);
 
 module.exports = router;
