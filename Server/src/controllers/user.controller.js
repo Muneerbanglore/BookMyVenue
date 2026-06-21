@@ -53,7 +53,7 @@ const uploadProfileImages = asyncHandler(async (req, res) => {
   // Upload to Firebase Storage
   const admin = require('firebase-admin');
   const projectId = process.env.FIREBASE_PROJECT_ID;
-  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`;
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`;
   const bucket = admin.storage().bucket(storageBucket);
   const storageFile = bucket.file(destPath);
 
